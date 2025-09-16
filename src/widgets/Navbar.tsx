@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react"; // hamburger + close icons
+import { Link } from "react-router-dom";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,9 +53,12 @@ function Navbar() {
 
         {/* CTA + Mobile Button */}
         <div className="flex items-center space-x-4">
-          <button className="hidden md:block bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700">
-            Get SoilTrack
-          </button>
+          <Link
+            to="auth/login"
+            className="hidden md:block bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700"
+          >
+            Login
+          </Link>
 
           {/* Hamburger */}
           <button
