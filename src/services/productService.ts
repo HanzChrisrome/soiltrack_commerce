@@ -18,16 +18,25 @@ export const productService = {
     formData.append("product_description", product.product_description || "");
     if (imageFile) formData.append("image", imageFile);
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || "Failed to add product");
+      if (!res.ok) {
+        let message = "Failed to add product";
+        try {
+          const errorData = await res.json();
+          message = errorData.error || message;
+        } catch (_) {}
+        throw new Error(message);
+      }
+
+      return res.json();
+    } catch (err) {
+      console.error("Network error while adding product:", err);
+      throw err;
     }
-
-    return res.json();
   },
 };

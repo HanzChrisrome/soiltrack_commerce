@@ -13,10 +13,13 @@ const LoginForm = () => {
   const { login, isLoggingIn, authUser } = useAuthStore();
   const navigate = useNavigate();
 
-  // ✅ redirect after successful login
   useEffect(() => {
     if (authUser) {
-      navigate("/"); // Dashboard/LandingPage is at "/"
+      if (authUser.role_id === 2) {
+        navigate("/admin/dashboard"); // redirect admins
+      } else {
+        navigate("/"); // redirect customers / non-admins
+      }
     }
   }, [authUser, navigate]);
 

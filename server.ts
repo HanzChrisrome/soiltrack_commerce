@@ -1,25 +1,31 @@
 import express from "express";
 import cors from "cors";
-import productsController from "./src/controllers/productsController";
 import path from "path";
+import productsController from "./src/controllers/productsController.js"; // add .js if using ESM
 
 const app = express();
-const PORT = 5000;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(
+  cors({
+    origin: "http://localhost:5173", // your Vite frontend
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
+app.use(express.json()); // replaces body-parser
 
-// Serve images statically
+// Serve static product images
 app.use(
   "/product_images",
-  express.static(path.join(__dirname, "product_images"))
+  express.static(path.join(process.cwd(), "src/product_images"))
 );
 
-// Admin routes
-app.use("/api/admin/products", productsController);
+// API routes
+app.use("/api/products", productsController);
 
 // Start server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
