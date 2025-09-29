@@ -2,19 +2,19 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import supabase from "../../supabaseServer.js";
 import { fileURLToPath } from "url";
-import supabase from "../../supabaseServer.js"; // note the .js if using ESM
-
-// Polyfill __dirname in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const router = Router();
 
-// Configure multer storage
+// Fix __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configure multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.join(process.cwd(), "src/product_images"); // safer than __dirname
+    const dir = path.join(process.cwd(), "src/product_images");
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -36,7 +36,24 @@ const upload = multer({
   },
 });
 
-// POST /api/products
+// ✅ READ all products
+router.get("/", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message || "Failed to fetch products" });
+  }
+});
+
+// ✅ CREATE new product
 router.post("/", upload.single("image"), async (req, res) => {
   try {
     const {
@@ -56,15 +73,11 @@ router.post("/", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    let imageUrl: string | null = null;
+    let imagePath: string | null = null;
     if (req.file) {
-      // Build a public URL for the image
-      imageUrl = `${req.protocol}://${req.get("host")}/product_images/${
-        req.file.filename
-      }`;
+      imagePath = `product_images/${req.file.filename}`;
     }
 
-    // Insert product into Supabase
     const { data, error } = await supabase
       .from("products")
       .insert({
@@ -73,7 +86,7 @@ router.post("/", upload.single("image"), async (req, res) => {
         product_price: Number(product_price),
         product_quantity: Number(product_quantity),
         product_description: product_description || null,
-        product_image: imageUrl,
+        product_image: imagePath,
       })
       .select()
       .single();
@@ -84,6 +97,68 @@ router.post("/", upload.single("image"), async (req, res) => {
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
+// ✅ UPDATE product
+router.put("/:product_id", upload.single("image"), async (req, res) => {
+  try {
+    const { product_id } = req.params;
+    const {
+      product_name,
+      product_category,
+      product_price,
+      product_quantity,
+      product_description,
+    } = req.body;
+
+    let imagePath: string | undefined;
+    if (req.file) {
+      imagePath = `product_images/${req.file.filename}`;
+    }
+
+    const updateData: any = {
+      product_name,
+      product_category,
+      product_price: Number(product_price),
+      product_quantity: Number(product_quantity),
+      product_description: product_description || null,
+    };
+
+    if (imagePath) updateData.product_image = imagePath;
+
+    const { data, error } = await supabase
+      .from("products")
+      .update(updateData)
+      .eq("product_id", product_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message || "Failed to update product" });
+  }
+});
+
+// ✅ DELETE product
+router.delete("/:product_id", async (req, res) => {
+  try {
+    const { product_id } = req.params;
+
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("product_id", product_id);
+
+    if (error) throw error;
+
+    res.json({ message: "Product deleted successfully" });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message || "Failed to delete product" });
   }
 });
 

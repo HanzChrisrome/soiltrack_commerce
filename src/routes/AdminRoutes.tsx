@@ -4,6 +4,7 @@ import AdminLayout from "../pages/Admin/AdminLayout";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import AdminAddProduct from "../pages/Admin/AddProduct";
 import RoleProtectedRoute from "../helper/RoleProtectedRoute";
+import ViewProducts from "../pages/Admin/ViewProducts";
 
 const AdminRoutes = () => (
   <>
@@ -19,6 +20,7 @@ const AdminRoutes = () => (
 
       <Route path="dashboard" element={<AdminDashboard />} />
       <Route path="add-product" element={<AdminAddProduct />} />
+      <Route path="view-product" element={<ViewProducts />} />
     </Route>
   </>
 );

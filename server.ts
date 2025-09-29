@@ -9,7 +9,7 @@ const app = express();
 app.use(
   cors({
     origin: "http://localhost:5173", // your Vite frontend
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // ✅ allow all CRUD
     allowedHeaders: ["Content-Type"],
   })
 );

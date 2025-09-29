@@ -23,11 +23,11 @@ const AdminDashboard = () => {
 
         {/* Orders */}
         <Link
-          to="/admin/orders"
+          to="/admin/view-product"
           className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition"
         >
-          <h2 className="font-semibold text-lg">Orders</h2>
-          <p className="text-gray-500 text-sm">View and process orders</p>
+          <h2 className="font-semibold text-lg">Products</h2>
+          <p className="text-gray-500 text-sm">View and process products</p>
         </Link>
 
         {/* Products */}
