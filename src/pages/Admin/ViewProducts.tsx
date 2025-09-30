@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { productService } from "../../services/productService";
 import type { Product } from "../../models/product";
+import AddProduct from "./AddProduct";
 
 const ViewProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Edit modal state
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  // Modal states
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // for Edit
+  const [addingProduct, setAddingProduct] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -35,38 +36,39 @@ const ViewProducts = () => {
     }
   };
 
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setImageFile(null);
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProduct) return;
-
-    try {
-      const updated = await productService.updateProduct(
-        editingProduct,
-        imageFile || undefined
-      );
-
-      // Update local state
+  const handleSaveSuccess = (savedProduct: Product) => {
+    if (
+      savedProduct.product_id &&
+      products.some((p) => p.product_id === savedProduct.product_id)
+    ) {
+      // ✅ Update existing
       setProducts((prev) =>
-        prev.map((p) => (p.product_id === updated.product_id ? updated : p))
+        prev.map((p) =>
+          p.product_id === savedProduct.product_id ? savedProduct : p
+        )
       );
-
-      setEditingProduct(null);
-      setImageFile(null);
-    } catch (err) {
-      console.error("Error updating product:", err);
+    } else {
+      // ✅ Add new
+      setProducts((prev) => [...prev, savedProduct]);
     }
+    setAddingProduct(false);
+    setSelectedProduct(null);
   };
 
   if (loading) return <p>Loading products...</p>;
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">All Products</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">All Products</h1>
+        <button
+          onClick={() => setAddingProduct(true)}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          + Add Product
+        </button>
+      </div>
+
       <table className="table w-full">
         <thead>
           <tr>
@@ -103,7 +105,7 @@ const ViewProducts = () => {
                 </td>
                 <td>
                   <button
-                    onClick={() => handleEdit(p)}
+                    onClick={() => setSelectedProduct(p)}
                     className="btn btn-sm btn-warning mr-2"
                   >
                     Edit
@@ -121,98 +123,27 @@ const ViewProducts = () => {
         </tbody>
       </table>
 
-      {/* ✅ Edit Product Modal */}
-      {editingProduct && (
+      {/* ✅ Add Product Modal */}
+      {addingProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Edit Product</h2>
-            <form onSubmit={handleUpdate} className="space-y-3">
-              <input
-                type="text"
-                value={editingProduct.product_name}
-                onChange={(e) =>
-                  setEditingProduct({
-                    ...editingProduct,
-                    product_name: e.target.value,
-                  })
-                }
-                placeholder="Product Name"
-                className="input input-bordered w-full"
-              />
-              <select
-                value={editingProduct.product_category}
-                onChange={(e) =>
-                  setEditingProduct({
-                    ...editingProduct,
-                    product_category: e.target
-                      .value as Product["product_category"],
-                  })
-                }
-                className="select select-bordered w-full"
-              >
-                <option>Insecticide</option>
-                <option>Herbicide</option>
-                <option>Pesticide</option>
-                <option>Molluscicide</option>
-                <option>Fertilizer</option>
-              </select>
-              <input
-                type="number"
-                value={editingProduct.product_price}
-                onChange={(e) =>
-                  setEditingProduct({
-                    ...editingProduct,
-                    product_price: Number(e.target.value),
-                  })
-                }
-                placeholder="Price"
-                className="input input-bordered w-full"
-              />
-              <input
-                type="number"
-                value={editingProduct.product_quantity}
-                onChange={(e) =>
-                  setEditingProduct({
-                    ...editingProduct,
-                    product_quantity: Number(e.target.value),
-                  })
-                }
-                placeholder="Quantity"
-                className="input input-bordered w-full"
-              />
-              <textarea
-                value={editingProduct.product_description || ""}
-                onChange={(e) =>
-                  setEditingProduct({
-                    ...editingProduct,
-                    product_description: e.target.value,
-                  })
-                }
-                placeholder="Description"
-                className="textarea textarea-bordered w-full"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  setImageFile(e.target.files ? e.target.files[0] : null)
-                }
-                className="file-input w-full"
-              />
+          <div className="bg-white p-6 rounded-lg w-[32rem]">
+            <AddProduct
+              onSuccess={handleSaveSuccess}
+              onCancel={() => setAddingProduct(false)}
+            />
+          </div>
+        </div>
+      )}
 
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingProduct(null)}
-                  className="btn btn-ghost"
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save
-                </button>
-              </div>
-            </form>
+      {/* ✅ Edit Product Modal */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg w-[32rem]">
+            <AddProduct
+              initialData={selectedProduct}
+              onSuccess={handleSaveSuccess}
+              onCancel={() => setSelectedProduct(null)}
+            />
           </div>
         </div>
       )}

@@ -27,18 +27,18 @@ const AdminDashboard = () => {
           className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition"
         >
           <h2 className="font-semibold text-lg">Products</h2>
-          <p className="text-gray-500 text-sm">View and process products</p>
+          <p className="text-gray-500 text-sm">
+            Add, edit, and remove products
+          </p>
         </Link>
 
         {/* Products */}
         <Link
-          to="/admin/add-product"
+          to="/admin/placeholder"
           className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition"
         >
-          <h2 className="font-semibold text-lg">Products</h2>
-          <p className="text-gray-500 text-sm">
-            Add, edit, and remove products
-          </p>
+          <h2 className="font-semibold text-lg">Placeholder</h2>
+          <p className="text-gray-500 text-sm">placeholder description</p>
         </Link>
       </div>
     </div>

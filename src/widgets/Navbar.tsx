@@ -34,7 +34,7 @@ function Navbar() {
               Features
             </a>
             <a
-              href="#shop"
+              href="/shop"
               className="hover:text-green-600 font-semibold tracking-tight"
             >
               Shop
@@ -131,7 +131,7 @@ function Navbar() {
             Features
           </a>
           <a
-            href="#shop"
+            href="/shop"
             className="block text-gray-700 hover:text-green-600 font-medium"
           >
             Shop
