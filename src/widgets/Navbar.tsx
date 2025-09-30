@@ -22,7 +22,7 @@ function Navbar() {
           {/* Desktop Nav Links */}
           <div className="hidden md:flex space-x-8 pl-10">
             <a
-              href="#about"
+              href="/"
               className="hover:text-green-600 font-semibold tracking-tight"
             >
               About

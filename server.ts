@@ -1,7 +1,8 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
-import productsController from "./src/controllers/productsController.js"; // add .js if using ESM
+import productsController from "./src/controllers/productsController.js"; 
+import cartController from "./src/controllers/cartController.js";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use(
 
 // API routes
 app.use("/api/products", productsController);
+app.use("/api/cart", cartController);
 
 // Start server
 const PORT = process.env.PORT || 5000;
