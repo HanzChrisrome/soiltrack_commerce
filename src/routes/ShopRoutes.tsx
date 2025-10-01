@@ -8,10 +8,9 @@ const ShopRoutes = () => (
   <>
     {/* All client-facing shop routes */}
     <Route path="shop" element={<Shop />} />
-    
-        <Route path="shop/:id" element={<ProductDetails />} />
-        <Route path="cart" element={<Cart />} /> 
-    
+
+    <Route path="/product/:id" element={<ProductDetails />} />
+    <Route path="cart" element={<Cart />} />
   </>
 );
 

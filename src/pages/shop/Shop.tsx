@@ -1,94 +1,93 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { productService } from "../../services/productService";
-import type { Product } from "../../models/product";
+import { useShopStore } from "../../store/useShopStore";
 import { useAuthStore } from "../../store/useAuthStore";
-import { cartService } from "../../services/cartService";
 import Navbar from "../../widgets/Navbar";
+import SearchFilter from "../../widgets/SearchFilter";
+import ProductCard from "../../widgets/ProductCard";
 
 const Shop = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { products, fetchProducts, addItemToCart, productLoading } =
+    useShopStore();
   const { authUser } = useAuthStore();
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const data = await productService.getProducts();
-        setProducts(data);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
-  const handleAddToCart = async (productId: string) => {
-    if (!authUser?.user_id) {
-      alert("You must be logged in to add items to the cart.");
+  const handleAddToCart = async (product_id: string) => {
+    if (!authUser) {
+      alert("Please log in to add items to your cart.");
       return;
     }
 
     try {
-      await cartService.addToCart(authUser.user_id, productId, 1);
-      alert("Added to cart!");
+      await addItemToCart(authUser.user_id, product_id, 1);
     } catch (err) {
-      console.error("Error adding to cart:", err);
+      console.error("Failed to add item", err);
     }
   };
 
-  if (loading) return <p className="text-center mt-10">Loading products...</p>;
+  // Simple filter by name
+  const filteredProducts = products.filter((p) =>
+    p.product_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <>
       <Navbar />
-      <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8">Shop</h1>
 
-        {products.length === 0 ? (
-          <p className="text-center text-gray-600">No products available.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((p) => (
-              <div
-                key={p.product_id}
-                className="bg-white shadow-md rounded-lg p-4 flex flex-col hover:shadow-lg transition"
-              >
-                <Link to={`/product/${p.product_id}`}>
-                  {p.product_image && (
-                    <img
-                      src={`http://localhost:5000/${p.product_image}`}
-                      alt={p.product_name}
-                      className="h-40 w-full object-cover rounded-md mb-3"
-                    />
-                  )}
-                  <h2 className="text-lg font-semibold">{p.product_name}</h2>
-                  <p className="text-sm text-gray-500">{p.product_category}</p>
-                  <p className="text-green-600 font-bold mt-2">
-                    ₱{p.product_price.toFixed(2)}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Stock: {p.product_quantity}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2 line-clamp-2">
-                    {p.product_description}
-                  </p>
-                </Link>
+      {/* Search bar */}
+      <div className="sticky top-16 z-10 bg-gray-200 border-b">
+        <div className="max-w-6xl mx-auto flex items-center gap-2 px-4 py-4">
+          <select className="border rounded px-2 py-2 bg-white">
+            <option>All Categories</option>
+            <option>Insecticide</option>
+            <option>Herbicide</option>
+            <option>Pesticide</option>
+            <option>Molluscicide</option>
+            <option>Fertilizer</option>
+          </select>
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 border rounded px-3 py-2"
+          />
+          <button className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-600">
+            Search
+          </button>
+        </div>
+      </div>
 
-                <button
-                  className="mt-auto bg-green-900 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-                  onClick={() => handleAddToCart(p.product_id!)} // ✅ non-null assertion
-                  disabled={p.product_quantity <= 0}
-                >
-                  {p.product_quantity > 0 ? "Add to Cart" : "Out of Stock"}
-                </button>
-              </div>
-            ))}
+      {/* Content wrapper */}
+      <div className="min-h-screen bg-gray-50 mt-16">
+        <div className="max-w-6xl mx-auto flex mt-6 gap-6 px-4">
+          {/* Sidebar filter */}
+          <div className="w-1/4 hidden md:block">
+            <SearchFilter />
           </div>
-        )}
+
+          {/* Main product grid */}
+          <div className="flex-1 pb-10">
+            {productLoading ? (
+              <p className="text-center mt-20">Loading products...</p>
+            ) : filteredProducts.length === 0 ? (
+              <p className="text-center text-gray-600">No products found.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.product_id}
+                    product={product}
+                    onAddToCart={() => handleAddToCart(product.product_id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

@@ -32,6 +32,7 @@ type SupabaseUserData = {
 interface AuthState {
   authUser: AuthUser | null;
   isAuthLoaded: boolean;
+  hasCheckedAuth: boolean; // ✅ NEW
   isLoggingIn: boolean;
   isSigningUp: boolean;
   isCheckingAuth: boolean;
@@ -56,7 +57,6 @@ interface AuthState {
     barangay_name: string;
     street: string;
   }) => Promise<void>;
-
   login: (email: string, password: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (
@@ -67,9 +67,10 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   authUser: null,
   isAuthLoaded: false,
+  hasCheckedAuth: false, // ✅ NEW
   isLoggingIn: false,
   isSigningUp: false,
   isCheckingAuth: false,
@@ -78,13 +79,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoggingOut: false,
 
   checkAuth: async () => {
+    if (get().hasCheckedAuth) {
+      return; // ✅ Prevent multiple re-checks
+    }
+
     set({ isCheckingAuth: true });
 
     try {
       const { data } = await supabase.auth.getUser();
 
       if (!data.user) {
-        set({ authUser: null, isAuthLoaded: true });
+        set({ authUser: null, isAuthLoaded: true, hasCheckedAuth: true });
         return;
       }
 
@@ -98,7 +103,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (userError) {
         console.error("Error fetching user:", userError);
-        set({ authUser: null, isAuthLoaded: true });
+        set({ authUser: null, isAuthLoaded: true, hasCheckedAuth: true });
         return;
       }
 
@@ -120,10 +125,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         role_name: roleName ?? "User",
       };
 
-      set({ authUser: user, isAuthLoaded: true });
+      set({ authUser: user, isAuthLoaded: true, hasCheckedAuth: true });
     } catch (err) {
       console.error("Error during checkAuth:", err);
-      set({ authUser: null, isAuthLoaded: true });
+      set({ authUser: null, isAuthLoaded: true, hasCheckedAuth: true });
     } finally {
       set({ isCheckingAuth: false });
     }
