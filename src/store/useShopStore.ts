@@ -24,6 +24,7 @@ interface ShopState {
   removeItemFromCart: (cart_item_id: string) => Promise<void>;
   refreshProducts: () => Promise<void>;
   refreshCart: (user_id: string) => Promise<void>;
+  clearCart: () => void;
 }
 
 export const useShopStore = create<ShopState>((set, get) => ({
@@ -34,7 +35,6 @@ export const useShopStore = create<ShopState>((set, get) => ({
   lastFetchedProducts: null,
   lastFetchedCart: null,
 
-  // ✅ fetch products only if empty or stale (>5 mins)
   fetchProducts: async () => {
     const { products, lastFetchedProducts } = get();
     const isStale =
@@ -52,18 +52,22 @@ export const useShopStore = create<ShopState>((set, get) => ({
     }
   },
 
-  // ✅ fetch cart only if empty or stale (>2 mins)
   fetchCart: async (user_id: string) => {
     if (!user_id) return;
-    const { cart, lastFetchedCart } = get();
-    const isStale =
-      !lastFetchedCart || Date.now() - lastFetchedCart > 2 * 60 * 1000;
-    if (cart.length > 0 && !isStale) return;
-
     set({ cartLoading: true });
     try {
-      const data = await cartService.getCart(user_id);
-      set({ cart: data, lastFetchedCart: Date.now() });
+      const cartData = await cartService.getCart(user_id);
+      const products = get().products;
+
+      const enriched = cartData.map((c: CartItem) => {
+        const prod = products.find((p) => p.product_id === c.product_id);
+        return {
+          ...c,
+          product_category: prod?.product_category ?? c.product_category,
+        };
+      });
+
+      set({ cart: enriched, lastFetchedCart: Date.now() });
     } catch (err) {
       console.error("Failed to fetch cart", err);
     } finally {
@@ -151,5 +155,9 @@ export const useShopStore = create<ShopState>((set, get) => ({
     } finally {
       set({ cartLoading: false });
     }
+  },
+
+  clearCart: () => {
+    set({ cart: [], lastFetchedCart: Date.now() });
   },
 }));

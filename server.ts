@@ -1,8 +1,12 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
-import productsController from "./src/controllers/productsController.js"; 
+import productsController from "./src/controllers/productsController.js";
 import cartController from "./src/controllers/cartController.js";
+import checkouteRoutes from "./src/routes/checkoutRoutes.js";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
 
@@ -25,6 +29,7 @@ app.use(
 // API routes
 app.use("/api/products", productsController);
 app.use("/api/cart", cartController);
+app.use("/api/checkout", checkouteRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

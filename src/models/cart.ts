@@ -6,4 +6,5 @@ export interface CartItem {
   product_name: string | null;
   product_price: number | null;
   product_image: string | null;
+  product_category: string | null;
 }

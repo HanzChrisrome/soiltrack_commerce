@@ -33,8 +33,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
 
       {/* Hardcoded rating */}
       <div className="flex items-center text-sm text-gray-500 mt-1">
-        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
-        4.8
+        <div>{product.product_category}</div>
       </div>
 
       <button

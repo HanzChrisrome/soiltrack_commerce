@@ -3,6 +3,8 @@ import { Route } from "react-router-dom";
 import Shop from "../pages/shop/Shop";
 import Cart from "../pages/shop/Cart";
 import ProductDetails from "../pages/shop/ProductDetails";
+import CheckoutSuccess from "../pages/shop/CheckoutSuccess";
+import CheckoutCancel from "../pages/shop/CheckoutCancel";
 
 const ShopRoutes = () => (
   <>
@@ -11,6 +13,8 @@ const ShopRoutes = () => (
 
     <Route path="/product/:id" element={<ProductDetails />} />
     <Route path="cart" element={<Cart />} />
+    <Route path="checkout/success" element={<CheckoutSuccess />} />
+    <Route path="checkout/cancel" element={<CheckoutCancel />} />
   </>
 );
 
