@@ -1,6 +1,7 @@
 // src/controllers/checkoutController.ts
 import axios from "axios";
 import type { Request, Response } from "express";
+import supabase from "../../supabaseServer";
 
 export const createCheckoutLink = async (req: Request, res: Response) => {
   try {
@@ -21,22 +22,23 @@ export const createCheckoutLink = async (req: Request, res: Response) => {
       !Array.isArray(items) ||
       typeof total !== "number"
     ) {
-      return res.status(400).json({ error: "Missing or invalid payload" });
+      return res.status(400).json({ error: "Invalid payload" });
     }
 
     const PAYMONGO_SECRET = process.env.PAYMONGO_SECRET_KEY;
-    if (!PAYMONGO_SECRET) {
-      return res.json({ url: "https://example.com/fake-checkout?test=1" });
-    }
+    if (!PAYMONGO_SECRET)
+      return res.status(500).json({ error: "PayMongo key missing" });
 
-    // ✅ Use Checkout Sessions API (recommended)
+    const authHeader =
+      "Basic " + Buffer.from(`${PAYMONGO_SECRET}:`).toString("base64");
+
     const payload = {
       data: {
         attributes: {
           line_items: items.map((i) => ({
-            currency: "PHP",
-            amount: Math.round(i.product_price * 100), // convert pesos → centavos
             name: i.product_name,
+            amount: Math.round(i.product_price * 100), // centavos
+            currency: "PHP",
             quantity: i.quantity,
           })),
           payment_method_types: ["card", "gcash", "paymaya"],
@@ -50,11 +52,8 @@ export const createCheckoutLink = async (req: Request, res: Response) => {
       },
     };
 
-    const authHeader =
-      "Basic " + Buffer.from(`${PAYMONGO_SECRET}:`).toString("base64");
-
     const paymongoRes = await axios.post(
-      "https://api.paymongo.com/v1/payment_links",
+      "https://api.paymongo.com/v1/checkout_sessions",
       payload,
       {
         headers: {
@@ -63,19 +62,44 @@ export const createCheckoutLink = async (req: Request, res: Response) => {
         },
       }
     );
+
+    const sessionId = paymongoRes?.data?.data?.id;
     const checkoutUrl = paymongoRes?.data?.data?.attributes?.checkout_url;
 
-    if (!checkoutUrl) {
+    if (!sessionId || !checkoutUrl) {
       console.error("Unexpected PayMongo response:", paymongoRes.data);
       return res.status(500).json({ error: "Unexpected PayMongo response" });
+    }
+
+    // Insert pending order in Supabase (store centavos in total_amount)
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert([
+        {
+          user_id,
+          total_amount: Math.round(total * 100), // centavos
+          status: "pending",
+          order_ref: sessionId,
+          payment_provider_link: checkoutUrl,
+          payment_provider_data: paymongoRes.data,
+          metadata: { items }, // optional snapshot; useful for debugging
+        },
+      ])
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error("Supabase insert error:", orderError);
+      // We still return the checkout url so customer may pay — but log this to fix later
+      return res.status(500).json({ error: "Failed to create order in DB" });
     }
 
     return res.json({ url: checkoutUrl });
   } catch (err: any) {
     console.error(
-      "create-payment-link error:",
+      "createCheckoutLink error:",
       err?.response?.data ?? err.message
     );
-    return res.status(500).json({ error: "Failed to create payment link" });
+    return res.status(500).json({ error: "Failed to create checkout session" });
   }
 };

@@ -1,3 +1,4 @@
+//Cart.tsx
 import { useEffect } from "react";
 import { useShopStore } from "../../store/useShopStore";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -62,14 +63,17 @@ const Cart = () => {
         itemsPayload,
         total
       );
+
+      console.log("👉 Checkout Response:", res);
+
       if (res?.url) {
-        window.location.href = res.url;
+        window.location.href = res.url; // Redirect to PayMongo hosted checkout
       } else {
         alert("Failed to create checkout link.");
         console.error(res);
       }
     } catch (err) {
-      console.error("Checkout error:", err);
+      console.error("❌ Checkout error:", err);
       alert("Checkout failed. See console.");
     }
   };

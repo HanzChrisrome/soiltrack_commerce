@@ -1,6 +1,6 @@
 // routes/cartController.ts
 import { Router } from "express";
-import supabase from "../../supabaseServer.js";
+import supabase from "../../supabaseServer";
 
 const router = Router();
 
