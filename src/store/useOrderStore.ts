@@ -1,7 +1,6 @@
-// src/store/useOrdersStore.ts
 import { create } from "zustand";
 import type { Order } from "../models/order";
-import { orderService } from "../services/orderService";
+import { fetchOrdersByUser } from "../services/orderService";
 
 interface OrdersState {
   orders: Order[];
@@ -16,11 +15,13 @@ export const useOrdersStore = create<OrdersState>((set) => ({
   error: null,
 
   fetchOrders: async (userId: string) => {
-    set({ loading: true, error: null });
     try {
-      const orders = await orderService.fetchOrders(userId);
+      set({ loading: true });
+      const orders = await fetchOrdersByUser(userId);
+      console.log("🟢 Setting orders in store:", orders.length);
       set({ orders, loading: false });
     } catch (err: any) {
+      console.error("❌ Error in fetchOrders:", err);
       set({ error: err.message, loading: false });
     }
   },

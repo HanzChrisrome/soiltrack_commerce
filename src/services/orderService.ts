@@ -1,47 +1,46 @@
-// src/services/orderService.ts
 import supabase from "../lib/supabase";
 import type { Order } from "../models/order";
 
-export const orderService = {
-  async fetchOrders(userId: string): Promise<Order[]> {
-    const { data, error } = await supabase
-      .from("orders")
-      .select(
-        `
-        order_id,
-        order_ref,
-        status,
-        total_amount,
-        created_at,
-        order_items (
-          order_item_id,
-          product_id,
-          quantity,
-          unit_price,
-          subtotal,
-          products (
-            product_id,
-            product_name,
-            product_image
-          )
-        )
+export const fetchOrdersByUser = async (user_id: string): Promise<Order[]> => {
+  console.log("🧾 Fetching orders for user_id:", user_id);
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
       `
+      order_id,
+      order_ref,
+      user_id,
+      total_amount,
+      order_status,
+      shipping_status,
+      created_at,
+      order_items (
+        order_item_id,
+        product_id,
+        order_item_quantity,
+        unit_price,
+        subtotal,
+        created_at,
+        products (
+          product_name,
+          product_image
+        )
       )
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+    `
+    )
+    .eq("user_id", user_id)
+    .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("❌ Error fetching orders:", error.message);
-      throw new Error(error.message);
-    }
+  console.log("🧾 Raw Supabase data:", data);
+  console.log("🧾 Supabase error:", error);
 
-    // Flatten Supabase response (products[] → product | null)
-    return (data || []).map((o: any) => ({
-      ...o,
-      order_items: o.order_items.map((i: any) => ({
-        ...i,
-        products: i.products ? i.products[0] ?? null : null,
-      })),
-    })) as Order[];
-  },
+  if (error) {
+    console.error("❌ Error fetching orders:", error);
+    return [];
+  }
+
+  const orders = Array.isArray(data) ? data : [];
+  console.log("✅ Returning orders:", orders.length);
+  return orders;
 };

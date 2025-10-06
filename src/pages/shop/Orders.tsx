@@ -1,131 +1,162 @@
-// src/pages/Orders.tsx
 import { useEffect, useState } from "react";
-import { useAuthStore } from "../../store/useAuthStore";
 import { useOrdersStore } from "../../store/useOrderStore";
-import type { Order } from "../../models/order";
+import { useAuthStore } from "../../store/useAuthStore";
+import Navbar from "../../widgets/Navbar";
 
-const tabs = ["All Orders", "To Ship", "To Receive", "Cancelled/Refunded"];
-
-const statusColors: Record<string, string> = {
-  "To Ship": "bg-orange-500 text-white",
-  "To Receive": "bg-blue-500 text-white",
-  "Cancelled/Refunded": "bg-gray-400 text-white",
-  pending: "bg-yellow-500 text-white",
-  completed: "bg-green-600 text-white",
-};
-
-const OrderCard = ({ order }: { order: Order }) => {
-  return (
-    <div className="bg-white shadow-md rounded-2xl p-6 mb-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="font-semibold text-lg">
-          Order ID: #{order.order_ref || order.order_id.slice(0, 8)}
-        </h3>
-        <span
-          className={`px-3 py-1 rounded-full text-sm font-medium ${
-            statusColors[order.status] || "bg-gray-200 text-gray-800"
-          }`}
-        >
-          {order.status}
-        </span>
-      </div>
-
-      {/* Products */}
-      <div className="space-y-4">
-        {order.order_items.map((item) => (
-          <div key={item.order_item_id} className="flex items-center gap-4">
-            {item.products?.product_image ? (
-              <img
-                src={`http://localhost:5000/${item.products.product_image}`}
-                alt={item.products.product_name}
-                className="w-16 h-16 object-cover rounded-lg"
-              />
-            ) : (
-              <div className="w-16 h-16 bg-gray-200 flex items-center justify-center rounded-lg text-gray-500">
-                No Image
-              </div>
-            )}
-            <div className="flex-1">
-              <p className="font-medium">{item.products?.product_name}</p>
-              <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-            </div>
-            <p className="font-semibold">
-              ₱ {(item.unit_price / 100).toFixed(2)}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div className="flex justify-between items-center mt-6">
-        <p className="text-lg font-bold">
-          Order Total: ₱ {(order.total_amount / 100).toFixed(2)}
-        </p>
-        <div className="flex gap-3">
-          <button className="bg-green-700 text-white px-4 py-2 rounded-xl shadow hover:bg-green-800">
-            Track Order
-          </button>
-          <button className="border border-green-600 text-green-700 px-4 py-2 rounded-xl hover:bg-green-50">
-            Contact Seller
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+const TABS = [
+  { key: "all", label: "All Orders" },
+  { key: "To Ship", label: "To Ship" },
+  { key: "To Receive", label: "To Receive" },
+  { key: "Delivered", label: "Delivered" },
+  { key: "Cancelled/Refunded", label: "Cancelled / Refunded" },
+];
 
 const Orders = () => {
   const { authUser } = useAuthStore();
-  const { orders, loading, error, fetchOrders } = useOrdersStore();
-  const [activeTab, setActiveTab] = useState("To Ship");
+  const { orders, fetchOrders, loading } = useOrdersStore();
+  const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
-    if (authUser?.user_id) {
-      fetchOrders(authUser.user_id);
-    }
+    console.log("👤 Auth user object:", authUser);
+    if (authUser?.user_id) fetchOrders(authUser.user_id);
   }, [authUser, fetchOrders]);
 
+  if (!authUser)
+    return (
+      <p className="text-center mt-20">Please log in to view your orders.</p>
+    );
+
+  if (loading)
+    return (
+      <div className="flex justify-center items-center mt-20">
+        <div className="w-10 h-10 border-4 border-green-900 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+
+  // 🟢 Filter orders based on activeTab
   const filteredOrders =
-    activeTab === "All Orders"
+    activeTab === "all"
       ? orders
-      : orders.filter((o) => o.status === activeTab);
+      : orders.filter((o) => o.shipping_status === activeTab);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Page Title */}
-      <h1 className="text-2xl font-bold mb-6">My Orders</h1>
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-gray-50 mt-16 p-6">
+        <div className="max-w-6xl mx-auto">
+          {/* ✅ Page Title */}
+          <h1 className="text-3xl font-bold mb-8">My Orders</h1>
 
-      {/* Tabs */}
-      <div className="flex gap-4 mb-8">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2 rounded-xl font-medium ${
-              activeTab === tab
-                ? "bg-green-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+          {/* ✅ Tab Navigation */}
+          <div className="flex flex-wrap gap-3 mb-8">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-4 py-2 rounded-full font-medium transition ${
+                  activeTab === tab.key
+                    ? "bg-green-800 text-white"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ✅ Orders Section */}
+          {filteredOrders.length === 0 ? (
+            <p className="text-center text-gray-600">
+              No orders found for this category.
+            </p>
+          ) : (
+            <div className="space-y-8">
+              {filteredOrders.map((order) => (
+                <div
+                  key={order.order_id}
+                  className="bg-white rounded-2xl shadow-md p-6"
+                >
+                  {/* Header: Order ID + Status */}
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold text-green-900">
+                      Order #{order.order_ref || order.order_id.slice(0, 8)}
+                    </h2>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        order.shipping_status === "To Ship"
+                          ? "bg-orange-100 text-orange-700"
+                          : order.shipping_status === "To Receive"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : order.shipping_status === "Delivered"
+                          ? "bg-green-100 text-green-700"
+                          : order.shipping_status === "Cancelled/Refunded"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {order.shipping_status || "Pending"}
+                    </span>
+                  </div>
+
+                  {/* Items */}
+                  <div className="space-y-4">
+                    {order.order_items?.map((item) => (
+                      <div
+                        key={item.order_item_id}
+                        className="flex items-center bg-gray-50 rounded-lg p-3"
+                      >
+                        {item.products?.product_image ? (
+                          <img
+                            src={`http://localhost:5000/${item.products.product_image}`}
+                            alt={item.products.product_name}
+                            className="h-20 w-20 object-cover rounded-lg mr-4"
+                          />
+                        ) : (
+                          <div className="h-20 w-20 bg-gray-200 rounded-lg mr-4 flex items-center justify-center text-gray-500 text-sm">
+                            No Image
+                          </div>
+                        )}
+
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {item.products?.product_name || "Unnamed Product"}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Qty: {item.order_item_quantity}
+                          </p>
+                        </div>
+
+                        <p className="text-green-900 font-bold text-lg">
+                          ₱{(item.subtotal / 100).toLocaleString("en-US")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="border-t mt-4 pt-4 flex justify-between items-center">
+                    <p className="text-lg font-semibold text-gray-700">
+                      Order Total:{" "}
+                      <span className="text-green-900 font-bold text-xl">
+                        ₱{(order.total_amount / 100).toLocaleString("en-US")}
+                      </span>
+                    </p>
+                    <div className="flex space-x-3">
+                      <button className="bg-green-900 text-white px-4 py-2 rounded-lg hover:bg-green-800">
+                        Track Order
+                      </button>
+                      <button className="border border-green-700 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50">
+                        Contact Seller
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* Orders */}
-      {loading ? (
-        <p className="text-center text-gray-500">Loading orders...</p>
-      ) : error ? (
-        <p className="text-center text-red-500">Error: {error}</p>
-      ) : filteredOrders.length === 0 ? (
-        <p className="text-center text-gray-500">No orders found.</p>
-      ) : (
-        filteredOrders.map((order: Order) => (
-          <OrderCard key={order.order_id} order={order} />
-        ))
-      )}
-    </div>
+    </>
   );
 };
 

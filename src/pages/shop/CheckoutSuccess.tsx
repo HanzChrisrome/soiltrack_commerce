@@ -1,4 +1,3 @@
-// src/pages/shop/CheckoutSuccess.tsx
 import { useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -15,14 +14,12 @@ const CheckoutSuccess = () => {
   useEffect(() => {
     const finalizeOrder = async () => {
       if (!authUser?.user_id || hasFinalized.current) return;
-      hasFinalized.current = true; // 🔑 ensure only runs once
+      hasFinalized.current = true;
 
       try {
         const res = await axios.post(
           "http://localhost:5000/api/orders/finalize",
-          {
-            user_id: authUser.user_id,
-          }
+          { user_id: authUser.user_id }
         );
         console.log("✅ Finalize response:", res.data);
         clearCart();
@@ -44,12 +41,6 @@ const CheckoutSuccess = () => {
         <p className="text-gray-700 mb-6">
           Thank you for your purchase! Your order has been confirmed.
         </p>
-        <button
-          onClick={() => navigate("/shop")}
-          className="bg-green-600 text-white px-6 py-2 rounded-lg shadow hover:bg-green-700"
-        >
-          Continue Shopping
-        </button>
         <div className="flex space-x-4">
           <button
             onClick={() => navigate("/shop")}
