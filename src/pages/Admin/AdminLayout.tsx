@@ -48,7 +48,7 @@ const AdminLayout = () => {
             <UserCog size={18} /> Users
           </Link>
           <Link
-            to="/admin/orders"
+            to="/admin/manage-orders"
             className="hover:text-green-700 font-medium flex items-center gap-2"
           >
             <ShoppingBag size={18} /> Orders
@@ -122,7 +122,7 @@ const AdminLayout = () => {
             Manage Users
           </Link>
           <Link
-            to="/admin/orders"
+            to="/admin/manage-orders"
             className="block hover:text-green-700 font-medium"
             onClick={() => setIsOpen(false)}
           >

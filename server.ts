@@ -7,6 +7,7 @@ import productsController from "./src/controllers/productsController";
 import cartController from "./src/controllers/cartController";
 import checkoutRoutes from "./src/routes/checkoutRoutes";
 import orderRoutes from "./src/routes/orderRoutes";
+import adminOrderRoutes from "./src/routes/adminOrderRoutes";
 
 dotenv.config();
 
@@ -34,6 +35,8 @@ app.use("/api/products", productsController);
 app.use("/api/cart", cartController);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/orders", orderRoutes);
+
+app.use("/api/admin/orders", adminOrderRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

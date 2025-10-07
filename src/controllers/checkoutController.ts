@@ -1,6 +1,7 @@
 // src/controllers/checkoutController.ts
 import axios from "axios";
 import type { Request, Response } from "express";
+import crypto from "crypto";
 
 export const createCheckoutLink = async (req: Request, res: Response) => {
   try {
@@ -22,6 +23,9 @@ export const createCheckoutLink = async (req: Request, res: Response) => {
     const authHeader =
       "Basic " + Buffer.from(`${PAYMONGO_SECRET}:`).toString("base64");
 
+    // ✅ Generate our own local order reference
+    const orderRef = "cs_" + crypto.randomBytes(8).toString("hex");
+
     const payload = {
       data: {
         attributes: {
@@ -32,12 +36,8 @@ export const createCheckoutLink = async (req: Request, res: Response) => {
             quantity: i.quantity,
           })),
           payment_method_types: ["card", "gcash", "paymaya"],
-          success_url:
-            process.env.CHECKOUT_SUCCESS_URL ||
-            "http://localhost:5173/checkout/success",
-          cancel_url:
-            process.env.CHECKOUT_CANCEL_URL ||
-            "http://localhost:5173/checkout/cancel",
+          success_url: `http://localhost:5173/checkout/success?ref=${orderRef}`,
+          cancel_url: `http://localhost:5173/checkout/cancel?ref=${orderRef}`,
         },
       },
     };
@@ -59,8 +59,8 @@ export const createCheckoutLink = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Unexpected PayMongo response" });
     }
 
-    // ✅ Return the PayMongo URL only — no order creation yet
-    return res.json({ url: checkoutUrl });
+    // ✅ Return our custom reference + PayMongo checkout URL
+    return res.json({ url: checkoutUrl, order_ref: orderRef });
   } catch (err: any) {
     console.error(
       "createCheckoutLink error:",

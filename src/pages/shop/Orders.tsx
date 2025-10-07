@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useOrdersStore } from "../../store/useOrderStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import Navbar from "../../widgets/Navbar";
+import CancelOrderForm from "../../widgets/CancelOrderForm";
+import axios from "axios";
 
 const TABS = [
   { key: "all", label: "All Orders" },
@@ -16,8 +18,10 @@ const Orders = () => {
   const { orders, fetchOrders, loading } = useOrdersStore();
   const [activeTab, setActiveTab] = useState("all");
 
+  // For modal visibility
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
   useEffect(() => {
-    console.log("👤 Auth user object:", authUser);
     if (authUser?.user_id) fetchOrders(authUser.user_id);
   }, [authUser, fetchOrders]);
 
@@ -33,21 +37,48 @@ const Orders = () => {
       </div>
     );
 
-  // 🟢 Filter orders based on activeTab
+  // Filter orders
   const filteredOrders =
     activeTab === "all"
       ? orders
       : orders.filter((o) => o.shipping_status === activeTab);
 
+  // Handle confirmation of cancellation
+  const handleConfirmCancellation = async (data: {
+    reason: string;
+    otherReason?: string;
+    name?: string;
+    email?: string;
+  }) => {
+    if (!selectedOrderId || !authUser) return;
+
+    try {
+      await axios.post("http://localhost:5000/api/orders/cancel", {
+        order_id: selectedOrderId,
+        user_id: authUser.user_id,
+        ...data,
+      });
+
+      alert("✅ Your cancellation request has been submitted for review.");
+      setSelectedOrderId(null);
+      fetchOrders(authUser.user_id);
+    } catch (err) {
+      console.error("❌ Failed to submit cancellation request:", err);
+      alert("Failed to send cancellation request. Please try again.");
+    }
+  };
+
+  const selectedOrder = orders.find((o) => o.order_id === selectedOrderId);
+
   return (
     <>
       <Navbar />
+
       <div className="min-h-screen bg-gray-50 mt-16 p-6">
         <div className="max-w-6xl mx-auto">
-          {/* ✅ Page Title */}
           <h1 className="text-3xl font-bold mb-8">My Orders</h1>
 
-          {/* ✅ Tab Navigation */}
+          {/* Tabs */}
           <div className="flex flex-wrap gap-3 mb-8">
             {TABS.map((tab) => (
               <button
@@ -64,7 +95,7 @@ const Orders = () => {
             ))}
           </div>
 
-          {/* ✅ Orders Section */}
+          {/* Orders */}
           {filteredOrders.length === 0 ? (
             <p className="text-center text-gray-600">
               No orders found for this category.
@@ -76,7 +107,7 @@ const Orders = () => {
                   key={order.order_id}
                   className="bg-white rounded-2xl shadow-md p-6"
                 >
-                  {/* Header: Order ID + Status */}
+                  {/* Header */}
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-green-900">
                       Order #{order.order_ref || order.order_id.slice(0, 8)}
@@ -145,9 +176,15 @@ const Orders = () => {
                       <button className="bg-green-900 text-white px-4 py-2 rounded-lg hover:bg-green-800">
                         Track Order
                       </button>
-                      <button className="border border-green-700 text-green-700 px-4 py-2 rounded-lg hover:bg-green-50">
-                        Contact Seller
-                      </button>
+
+                      {order.shipping_status === "To Ship" && (
+                        <button
+                          onClick={() => setSelectedOrderId(order.order_id)}
+                          className="border border-red-600 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50"
+                        >
+                          Refund / Cancel
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -156,6 +193,19 @@ const Orders = () => {
           )}
         </div>
       </div>
+
+      {/* 🟢 Cancel Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+          <div className="w-full max-w-lg">
+            <CancelOrderForm
+              orderId={selectedOrder.order_ref || selectedOrder.order_id}
+              onBackToDetails={() => setSelectedOrderId(null)}
+              onConfirmCancellation={handleConfirmCancellation}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 };
