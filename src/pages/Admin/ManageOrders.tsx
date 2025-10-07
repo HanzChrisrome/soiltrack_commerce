@@ -3,10 +3,11 @@ import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import {
   Printer,
-  Archive,
   Pencil,
   FileSpreadsheet,
+  Eye,
   X as Close,
+  Archive,
 } from "lucide-react";
 import { useAdminOrdersStore } from "../../store/useAdminOrderStore";
 import type { Order } from "../../models/order";
@@ -34,6 +35,7 @@ const ManageOrders = () => {
   const [userFilter, setUserFilter] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [editData, setEditData] = useState<Partial<Order>>({});
+  const [viewOrder, setViewOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     fetchAllOrders();
@@ -61,9 +63,7 @@ const ManageOrders = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Orders");
     const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([buffer], {
-      type: "application/octet-stream",
-    });
+    const blob = new Blob([buffer], { type: "application/octet-stream" });
     saveAs(blob, "Orders_Report.xlsx");
   };
 
@@ -89,13 +89,12 @@ const ManageOrders = () => {
     printWindow.print();
   };
 
-  // ✅ Modal Open
+  // ✅ Open Update Modal
   const handleOpenEdit = (order: Order) => {
     setSelectedOrder(order);
     setEditData(order);
   };
 
-  // ✅ Modal Close
   const handleCloseModal = () => {
     setSelectedOrder(null);
     setEditData({});
@@ -112,6 +111,10 @@ const ManageOrders = () => {
     );
     handleCloseModal();
   };
+
+  // ✅ Open "View Full Order" modal
+  const handleViewOrder = (order: Order) => setViewOrder(order);
+  const handleCloseViewOrder = () => setViewOrder(null);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -216,15 +219,11 @@ const ManageOrders = () => {
                         <Pencil size={18} />
                       </button>
                       <button
-                        onClick={() =>
-                          alert(
-                            "🗑️ Archiving logic will go here (soft delete or move to archive)"
-                          )
-                        }
+                        onClick={() => handleViewOrder(order)}
                         className="text-gray-600 hover:text-gray-800"
-                        title="Archive"
+                        title="View Full Order"
                       >
-                        <Archive size={18} />
+                        <Eye size={18} />
                       </button>
                     </td>
                   </tr>
@@ -274,19 +273,89 @@ const ManageOrders = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-between mt-6">
               <button
-                onClick={handleCloseModal}
-                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                onClick={() =>
+                  alert("🗑️ Archiving logic will go here (soft delete or flag)")
+                }
+                className="flex items-center gap-2 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-gray-700"
               >
-                Cancel
+                <Archive size={16} /> Archive
               </button>
-              <button
-                onClick={handleSaveUpdate}
-                className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800"
-              >
-                Save Changes
-              </button>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveUpdate}
+                  className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 👀 View Full Order Modal */}
+      {viewOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl relative">
+            <button
+              onClick={handleCloseViewOrder}
+              className="absolute top-3 right-3 text-gray-500 hover:text-black"
+            >
+              <Close size={22} />
+            </button>
+
+            <h2 className="text-2xl font-bold text-green-900 mb-4">
+              Order Details
+            </h2>
+
+            <p className="text-gray-700 mb-4">
+              <strong>Order ID:</strong>{" "}
+              {viewOrder.order_ref || viewOrder.order_id}
+            </p>
+            <p className="text-gray-700 mb-4">
+              <strong>User ID:</strong> {viewOrder.user_id}
+            </p>
+
+            <table className="w-full text-left border border-gray-200 rounded-lg">
+          <thead className="bg-green-900 text-white">
+            <tr>
+              <th className="p-2">Product Name</th>
+              <th className="p-2 text-center">Quantity</th>
+              <th className="p-2 text-right">Product Price</th>
+              <th className="p-2 text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {viewOrder.order_items.map((item) => (
+              <tr key={item.order_item_id} className="border-b">
+                <td className="p-2">
+                  {item.products?.product_name || "Unknown Product"}
+                </td>
+                <td className="p-2 text-center">{item.order_item_quantity}</td>
+                <td className="p-2 text-right">
+                   ₱{(item.unit_price / 100).toLocaleString("en-US")}
+                </td>
+                <td className="p-2 text-right">
+                  ₱{(item.subtotal / 100).toLocaleString("en-US")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+            </table>
+
+            <div className="flex justify-end mt-4">
+              <p className="text-lg font-semibold text-green-900">
+                Total: ₱{(viewOrder.total_amount / 100).toLocaleString("en-US")}
+              </p>
             </div>
           </div>
         </div>

@@ -7,10 +7,10 @@ import {
 
 const router = express.Router();
 
-// GET /api/admin/orders
+// ✅ GET all orders
 router.get("/", getAllOrders);
 
-// PUT /api/admin/orders/update-status
-router.put("/update-status", updateOrderStatus);
+// ✅ PUT update specific order’s status
+router.put("/:orderId", updateOrderStatus);
 
 export default router;

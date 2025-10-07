@@ -1,54 +1,57 @@
-// src/store/useAdminOrderStore.ts
-import { create } from "zustand";
-import axios from "axios";
-import type { Order } from "../models/order";
+// src/controllers/adminOrderController.ts
+import type { Request, Response } from "express";
+import supabase from "../../supabaseServer";
 
-interface AdminOrdersState {
-  orders: Order[];
-  loading: boolean;
-  error: string | null;
-  fetchAllOrders: () => Promise<void>;
-  updateOrderStatus: (orderId: string, newStatus: string) => Promise<void>;
-}
+export const getAllOrders = async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(`
+        order_id,
+        order_ref,
+        user_id,
+        total_amount,
+        order_status,
+        shipping_status,
+        created_at,
+        order_items (
+          order_item_id,
+          product_id,
+          order_item_quantity,
+          unit_price,
+          subtotal,
+          products (
+            product_id,
+            product_name
+          )
+        )
+      `)
+      .order("created_at", { ascending: false });
 
-export const useAdminOrdersStore = create<AdminOrdersState>((set, get) => ({
-  orders: [],
-  loading: false,
-  error: null,
+    if (error) throw error;
+    res.json(data);
+  } catch (err: any) {
+    console.error("❌ Error fetching all orders:", err.message);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+};
 
-  // ✅ Fetch all admin orders
-  fetchAllOrders: async () => {
-    try {
-      set({ loading: true });
-      const { data } = await axios.get(
-        "http://localhost:5000/api/admin/orders"
-      );
-      set({ orders: data, loading: false });
-    } catch (err: any) {
-      console.error("❌ Error fetching all orders:", err);
-      set({ error: err.message, loading: false });
-    }
-  },
+export const updateOrderStatus = async (req: Request, res: Response) => {
+  try {
+    const { order_id, new_status } = req.body;
 
-  // ✅ Update order status and update local state instantly
-  updateOrderStatus: async (orderId, newStatus) => {
-    try {
-      // Update in database
-      await axios.put(`http://localhost:5000/api/admin/orders/${orderId}`, {
-        shipping_status: newStatus,
-      });
+    if (!order_id || !new_status)
+      return res.status(400).json({ error: "Missing order_id or new_status" });
 
-      // 🔥 Update in local state immediately (no refresh needed)
-      set((state) => ({
-        orders: state.orders.map((order) =>
-          order.order_id === orderId
-            ? { ...order, shipping_status: newStatus }
-            : order
-        ),
-      }));
-    } catch (err: any) {
-      console.error("❌ Error updating order status:", err);
-      set({ error: err.message });
-    }
-  },
-}));
+    const { error } = await supabase
+      .from("orders")
+      .update({ shipping_status: new_status })
+      .eq("order_id", order_id);
+
+    if (error) throw error;
+    res.json({ message: "✅ Order status updated successfully" });
+  } catch (err: any) {
+    console.error("❌ updateOrderStatus error:", err.message);
+    res.status(500).json({ error: "Failed to update order status" });
+  }
+};
