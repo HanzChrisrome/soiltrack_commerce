@@ -1,24 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../../store/useAuthStore";
-
+import { useNavigate, Link } from "react-router-dom"; // ✅ import useNavigate
 import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
-// import linearLightLogo from "/LIGHT HORIZONTAL.png";
-import { Link } from "react-router-dom";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    emailOrUsername: "",
+    email: "",
     password: "",
   });
 
-  const { login, isLoggingIn } = useAuthStore();
+  const { login, isLoggingIn, authUser } = useAuthStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (authUser) {
+      if (authUser.role_id === 2) {
+        navigate("/admin/dashboard"); // redirect admins
+      } else {
+        navigate("/"); // redirect customers / non-admins
+      }
+    }
+  }, [authUser, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form Data:", formData);
-    const { emailOrUsername, password } = formData;
-    login(emailOrUsername, password);
+    const { email, password } = formData;
+    await login(email, password);
   };
 
   return (
@@ -28,27 +36,26 @@ const LoginForm = () => {
           Sign in to <br /> your Account
         </h2>
         <form onSubmit={handleSubmit} className="flex flex-col space-y-6">
+          {/* Email input */}
           <div className="form-control">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Mail className="h-5 w-5 text-base-content/40" />
               </div>
               <input
-                type="text"
+                type="email"
                 className="input input-bordered rounded-xl w-full pl-10"
-                placeholder="Username or Email"
-                value={formData.emailOrUsername}
+                placeholder="Email"
+                value={formData.email}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    emailOrUsername: e.target.value,
-                  })
+                  setFormData({ ...formData, email: e.target.value })
                 }
                 required
               />
             </div>
           </div>
 
+          {/* Password input */}
           <div className="form-control">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -91,7 +98,6 @@ const LoginForm = () => {
           >
             {isLoggingIn ? (
               <>
-                {" "}
                 <Loader2 className="h-5 w-5 animate-spin" /> Loading...
               </>
             ) : (
@@ -104,7 +110,7 @@ const LoginForm = () => {
       <div className="text-center font-semibold">
         <p>
           Don't have an account?{" "}
-          <Link to="/signup" className="text-secondary cursor-pointer">
+          <Link to="/auth/signup" className="text-secondary cursor-pointer">
             Create an Account
           </Link>
         </p>

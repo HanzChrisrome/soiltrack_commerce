@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react"; // hamburger + close icons
+import { Menu, X, ShoppingCart, User, LogOut, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuthStore } from "../store/useAuthStore"; // ✅ adjust path
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const { authUser, logout } = useAuthStore();
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-white border-b border-gray-300 z-50">
@@ -19,32 +22,32 @@ function Navbar() {
           {/* Desktop Nav Links */}
           <div className="hidden md:flex space-x-8 pl-10">
             <a
-              href="#about"
-              className=" hover:text-green-600 font-semibold tracking-tight"
+              href="/"
+              className="hover:text-green-600 font-semibold tracking-tight"
             >
               About
             </a>
             <a
               href="#features"
-              className=" hover:text-green-600 font-semibold tracking-tight"
+              className="hover:text-green-600 font-semibold tracking-tight"
             >
               Features
             </a>
             <a
-              href="#shop"
-              className=" hover:text-green-600 font-semibold tracking-tight"
+              href="/shop"
+              className="hover:text-green-600 font-semibold tracking-tight"
             >
               Shop
             </a>
             <a
               href="#sustainability"
-              className=" hover:text-green-600 font-semibold tracking-tight"
+              className="hover:text-green-600 font-semibold tracking-tight"
             >
               Sustainability
             </a>
             <a
               href="#contact"
-              className=" hover:text-green-600 font-semibold tracking-tight"
+              className="hover:text-green-600 font-semibold tracking-tight"
             >
               Contact
             </a>
@@ -52,13 +55,69 @@ function Navbar() {
         </div>
 
         {/* CTA + Mobile Button */}
-        <div className="flex items-center space-x-4">
-          <Link
-            to="auth/login"
-            className="hidden md:block bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700"
-          >
-            Login
-          </Link>
+        <div className="flex items-center space-x-4 relative">
+          {!authUser ? (
+            // Logged OUT
+            <Link
+              to="/auth/login"
+              className="hidden md:block bg-green-900 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700"
+            >
+              Login
+            </Link>
+          ) : (
+            // Logged IN
+            <div className="hidden md:flex items-center space-x-4">
+              <Link to="/cart" className="text-gray-700 hover:text-green-700">
+                <ShoppingCart size={24} />
+              </Link>
+
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setProfileOpen((prev) => !prev)}
+                  className="flex items-center space-x-1 text-gray-700 hover:text-green-700 focus:outline-none"
+                >
+                  <User size={24} />
+                  <ChevronDown size={16} />
+                </button>
+
+                {profileOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white border rounded-lg shadow-lg py-2">
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      My Profile
+                    </Link>
+                    <Link
+                      to="/orders"
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      My Orders
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setProfileOpen(false);
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    ></button>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setProfileOpen(false);
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    >
+                      <LogOut size={16} className="mr-2" /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Hamburger */}
           <button
@@ -86,7 +145,7 @@ function Navbar() {
             Features
           </a>
           <a
-            href="#shop"
+            href="/shop"
             className="block text-gray-700 hover:text-green-600 font-medium"
           >
             Shop
@@ -103,9 +162,36 @@ function Navbar() {
           >
             Contact
           </a>
-          <button className="w-full bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700">
-            Get SoilTrack
-          </button>
+
+          {!authUser ? (
+            <Link
+              to="/auth/login"
+              className="block w-full bg-green-900 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 text-center"
+            >
+              Login
+            </Link>
+          ) : (
+            <div className="flex flex-col space-y-2">
+              <Link
+                to="/cart"
+                className="flex items-center space-x-2 text-gray-700 hover:text-green-700"
+              >
+                <ShoppingCart size={20} /> <span>Cart</span>
+              </Link>
+              <Link
+                to="/profile"
+                className="flex items-center space-x-2 text-gray-700 hover:text-green-700"
+              >
+                <User size={20} /> <span>Profile</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="flex items-center space-x-2 text-gray-700 hover:text-green-700"
+              >
+                <LogOut size={20} /> <span>Logout</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </nav>
