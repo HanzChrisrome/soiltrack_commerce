@@ -10,6 +10,7 @@ const ViewInquiries = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<Inquiry | null>(null);
 
   useEffect(() => {
     fetchInquiries();
@@ -27,17 +28,16 @@ const ViewInquiries = () => {
   };
 
   const handleDelete = async (inquiry_id: string) => {
-    if (!confirm("Are you sure you want to delete this inquiry?")) return;
-
+    setDeletingId(inquiry_id);
     try {
-      setDeletingId(inquiry_id);
       await inquiryService.deleteInquiry(inquiry_id);
       setInquiries(inquiries.filter((i) => i.inquiry_id !== inquiry_id));
     } catch (error) {
       console.error("Error deleting inquiry:", error);
-      alert("Failed to delete inquiry");
+      // Optionally show a toast or error modal here
     } finally {
       setDeletingId(null);
+      setDeleteModal(null);
     }
   };
 
@@ -192,13 +192,77 @@ const ViewInquiries = () => {
                   </div>
 
                   <button
-                    onClick={() => handleDelete(inquiry.inquiry_id!)}
+                    onClick={() => setDeleteModal(inquiry)}
                     disabled={deletingId === inquiry.inquiry_id}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                     title="Delete inquiry"
                   >
                     <Trash2 className="h-5 w-5" />
                   </button>
+                  {/* Delete Confirmation Modal */}
+                  {deleteModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md relative border border-gray-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                            <Trash2 className="h-6 w-6 text-red-600" />
+                          </div>
+                          <div>
+                            <h2 className="text-lg font-semibold text-gray-900">
+                              Confirm Delete
+                            </h2>
+                            <p className="text-xs text-gray-500">
+                              This action will permanently delete the inquiry
+                            </p>
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Name:</span>
+                              <span className="font-medium text-gray-900">
+                                {deleteModal.user_name}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Email:</span>
+                              <span className="font-medium text-gray-900">
+                                {deleteModal.user_email}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Message:</span>
+                              <span className="font-medium text-gray-900 truncate max-w-[180px]">
+                                {deleteModal.user_inquiry}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-6">
+                          Are you sure you want to delete this inquiry?
+                        </p>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => setDeleteModal(null)}
+                            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDelete(deleteModal.inquiry_id!)
+                            }
+                            className="flex-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg hover:from-red-700 hover:to-red-900 transition-colors font-medium"
+                            disabled={deletingId === deleteModal.inquiry_id}
+                          >
+                            {deletingId === deleteModal.inquiry_id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

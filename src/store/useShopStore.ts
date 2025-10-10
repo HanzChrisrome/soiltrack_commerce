@@ -75,6 +75,8 @@ export const useShopStore = create<ShopState>((set, get) => ({
         };
       });
 
+      console.log("Enriched cart:", enriched);
+
       set({ cart: enriched, lastFetchedCart: Date.now() });
     } catch (err) {
       console.error("Failed to fetch cart", err);

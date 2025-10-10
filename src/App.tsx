@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
-import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 
 import { useAuthStore } from "./store/useAuthStore";
@@ -12,6 +11,8 @@ import Unauthorized from "./pages/UnauthorizedPage";
 import AuthRoutes from "./routes/AuthRoutes";
 import AdminRoutes from "./routes/AdminRoutes";
 import ShopRoutes from "./routes/ShopRoutes";
+import Lottie from "react-lottie-player";
+import loadingAnimation from "./assets/lottie/Sandy Loading.json";
 
 const App = () => {
   const { authUser, checkAuth, isAuthLoaded } = useAuthStore();
@@ -24,7 +25,12 @@ const App = () => {
   if (!isAuthLoaded) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
-        <div className="w-16 h-16 border-4 border-green-900 border-t-transparent rounded-full animate-spin"></div>
+        <Lottie
+          loop
+          animationData={loadingAnimation}
+          play
+          style={{ width: 150, height: 150 }}
+        />
       </div>
     );
   }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // routes/cartController.ts
 import { Router } from "express";
 import supabase from "../../supabaseServer";
@@ -65,6 +66,7 @@ router.get("/:user_id", async (req, res) => {
         products (
           product_id,
           product_name,
+          product_category,
           product_price,
           product_image
         )
@@ -83,6 +85,7 @@ router.get("/:user_id", async (req, res) => {
       product_name: item.products?.product_name,
       product_price: item.products?.product_price,
       product_image: item.products?.product_image,
+      product_category: item.products?.product_category,
     }));
 
     res.json(formatted);

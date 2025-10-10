@@ -8,6 +8,17 @@ import {
   isRedeemableProduct,
   getRedeemablePointCost,
 } from "../../models/redeemableProducts";
+import {
+  X,
+  Minus,
+  Plus,
+  Package,
+  CreditCard,
+  HeadphonesIcon,
+} from "lucide-react";
+import Footer from "../../widgets/Footer";
+import Lottie from "react-lottie-player";
+import loadingAnimation from "../../assets/lottie/Sandy Loading.json";
 
 const Cart = () => {
   const { authUser } = useAuthStore();
@@ -22,18 +33,18 @@ const Cart = () => {
   } = useShopStore();
 
   useEffect(() => {
-    if (authUser?.user_id) fetchCart(authUser.user_id);
+    fetchCart(authUser!.user_id);
   }, [authUser, fetchCart]);
-
-  if (!authUser)
-    return (
-      <p className="text-center mt-20">Please log in to view your cart.</p>
-    );
 
   if (cartLoading)
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gray-50 bg-opacity-75 z-50">
-        <div className="w-16 h-16 border-4 border-green-900 border-t-transparent rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
+        <Lottie
+          loop
+          animationData={loadingAnimation}
+          play
+          style={{ width: 150, height: 150 }}
+        />
       </div>
     );
 
@@ -114,236 +125,333 @@ const Cart = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-gray-50 mt-16 p-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">
-            Shopping Cart ({cart.length})
-          </h1>
+      <div className="min-h-screen bg-gray-50 mt-8 pt-8">
+        <div
+          className="text-center mb-8 py-12"
+          style={{
+            backgroundImage: "url('/background shopping cart.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          <div className="flex items-center justify-center gap-4">
+            <Package className="w-12 h-12 text-white drop-shadow-lg" />
+            <h1 className="text-5xl font-extrabold text-white">
+              Shopping Cart
+            </h1>
+          </div>
+          <p className="mt-4 max-w-2xl mx-auto text-lg text-white">
+            Review your selected items below. You can adjust quantities, redeem
+            eligible products with your points, or remove items before
+            proceeding to checkout.
+          </p>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+          {/* Page Title */}
 
           {cart.length === 0 ? (
-            <p className="text-center text-gray-600">Your cart is empty.</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full mb-4">
+                <Package className="w-12 h-12 text-gray-400" />
+              </div>
+              <p className="text-xl text-gray-600 mb-2">Your cart is empty</p>
+              <p className="text-gray-500 mb-6">
+                Add some products to get started!
+              </p>
+              <a
+                href="/shop"
+                className="inline-block bg-green-700 text-white px-6 py-3 rounded-lg hover:bg-green-800 transition-colors"
+              >
+                Continue Shopping
+              </a>
+            </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* LEFT COLUMN - Cart Items */}
-              <div className="lg:col-span-2 space-y-4">
-                {cart.map((item) => (
-                  <div
-                    key={item.cart_item_id}
-                    className="flex flex-col bg-white rounded-2xl shadow-md p-4"
-                  >
-                    <div className="flex items-center">
-                      {item.product_image ? (
-                        <img
-                          src={`http://localhost:5000/${item.product_image}`}
-                          alt={item.product_name ?? ""}
-                          className="h-24 w-24 object-cover rounded-lg mr-4"
-                        />
-                      ) : (
-                        <div className="h-24 w-24 bg-gray-200 rounded-lg mr-4 flex items-center justify-center text-gray-500 text-sm">
-                          No Image
-                        </div>
-                      )}
-
-                      <div className="flex-1">
-                        <h2 className="text-xl font-bold text-gray-800">
-                          {item.product_name ?? "Unnamed product"}
-                        </h2>
-                        <p className="text-sm text-gray-500">
-                          {item.product_category ?? "Uncategorized"}
-                        </p>
-
-                        {/* Price display */}
-                        <p className="text-sm font-medium mt-1 flex items-center space-x-2">
-                          {item.redeemedWithPoints ? (
-                            <>
-                              <span className="line-through text-gray-400">
-                                ₱
-                                {(item.product_price ?? 0).toLocaleString(
-                                  "en-US"
-                                )}
-                              </span>
-                              <span className="text-green-900">₱0</span>
-                            </>
-                          ) : (
-                            <span className="text-green-900">
-                              ₱
-                              {(item.product_price ?? 0).toLocaleString(
-                                "en-US"
-                              )}
-                            </span>
-                          )}
-                        </p>
-
-                        {/* Quantity controls */}
-                        <div className="flex items-center mt-3 space-x-1">
-                          <button
-                            className="px-3 py-2 border border-gray-300 bg-gray-100 rounded-md hover:bg-gray-200"
-                            onClick={() =>
-                              updateItemQuantity(
-                                item.cart_item_id,
-                                Math.max(item.quantity - 1, 1)
-                              )
-                            }
-                          >
-                            -
-                          </button>
-                          <div className="px-4 py-2 border border-gray-300 bg-gray-100 rounded-md">
-                            {item.quantity}
-                          </div>
-                          <button
-                            className="px-3 py-2 border border-gray-300 bg-gray-100 rounded-md hover:bg-gray-200"
-                            onClick={() =>
-                              updateItemQuantity(
-                                item.cart_item_id,
-                                item.quantity + 1
-                              )
-                            }
-                          >
-                            +
-                          </button>
-                        </div>
+              {/* LEFT COLUMN - Cart Table */}
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                  {/* Table Header */}
+                  <div className="bg-orange-50 border-b border-orange-100">
+                    <div className="grid grid-cols-12 gap-4 px-6 py-4">
+                      <div className="col-span-5 text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                        Product
                       </div>
-
-                      <div className="flex flex-col items-end">
-                        <div className="flex items-center space-x-2">
-                          {/* Item total */}
-                          <p className="text-sm font-medium mt-1 flex items-center space-x-2">
-                            {item.redeemedWithPoints ? (
-                              <>
-                                <span className="line-through text-gray-400">
-                                  ₱
-                                  {(item.product_price ?? 0).toLocaleString(
-                                    "en-US"
-                                  )}
-                                </span>
-                                <span className="text-green-900">₱0</span>
-                              </>
-                            ) : (
-                              <span className="text-green-900">
-                                ₱
-                                {(item.product_price ?? 0).toLocaleString(
-                                  "en-US"
-                                )}
-                              </span>
-                            )}
-                          </p>
-
-                          {/* Remove button */}
-                          <button
-                            className="w-8 h-8 flex items-center justify-center rounded-full border border-red-400 bg-red-100 text-red-600 hover:bg-red-200"
-                            onClick={() =>
-                              removeItemFromCart(item.cart_item_id)
-                            }
-                          >
-                            ✕
-                          </button>
-                        </div>
+                      <div className="col-span-2 text-sm font-semibold text-gray-700 uppercase tracking-wider text-center">
+                        Price
                       </div>
-                    </div>
-
-                    {/* Redeem / Cancel Buttons */}
-                    <div className="mt-2">
-                      {!item.redeemedWithPoints &&
-                        isRedeemableProduct(item.product_name ?? "") && (
-                          <button
-                            className={`px-3 py-1 rounded text-sm ${
-                              canRedeem(item)
-                                ? "bg-yellow-200 text-yellow-800 hover:bg-yellow-300"
-                                : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                            }`}
-                            disabled={!canRedeem(item)}
-                            onClick={() =>
-                              markRedeemItem(item.cart_item_id, authUser.points)
-                            }
-                          >
-                            Redeem with Points (
-                            {(
-                              (getRedeemablePointCost(
-                                item.product_name ?? ""
-                              ) ?? 0) * item.quantity
-                            ).toLocaleString()}{" "}
-                            pts )
-                          </button>
-                        )}
-                      {item.redeemedWithPoints && (
-                        <button
-                          className="px-3 py-1 mt-1 bg-red-100 text-red-600 rounded hover:bg-red-200 text-sm"
-                          onClick={() => cancelRedeemItem(item.cart_item_id)}
-                        >
-                          Cancel Redemption
-                        </button>
-                      )}
+                      <div className="col-span-2 text-sm font-semibold text-gray-700 uppercase tracking-wider text-center">
+                        Quantity
+                      </div>
+                      <div className="col-span-2 text-sm font-semibold text-gray-700 uppercase tracking-wider text-center">
+                        Subtotal
+                      </div>
+                      <div className="col-span-1"></div>
                     </div>
                   </div>
-                ))}
+
+                  {/* Table Body */}
+                  <div className="divide-y divide-gray-100">
+                    {cart.map((item) => {
+                      const itemPrice = item.redeemedWithPoints
+                        ? 0
+                        : item.product_price ?? 0;
+                      const itemSubtotal = itemPrice * item.quantity;
+
+                      return (
+                        <div
+                          key={item.cart_item_id}
+                          className="grid grid-cols-12 gap-4 px-6 py-6 hover:bg-gray-50 transition-colors"
+                        >
+                          {/* Product Info */}
+                          <div className="col-span-5 flex items-center gap-4">
+                            <button
+                              onClick={() =>
+                                removeItemFromCart(item.cart_item_id)
+                              }
+                              className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Remove item"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            {item.product_image ? (
+                              <img
+                                src={`http://localhost:5000/${item.product_image}`}
+                                alt={item.product_name ?? ""}
+                                className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                              />
+                            ) : (
+                              <div className="w-20 h-20 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                                <Package className="w-8 h-8 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 truncate">
+                                {item.product_name
+                                  ? item.product_name.charAt(0).toUpperCase() +
+                                    item.product_name.slice(1).toLowerCase()
+                                  : "Unnamed product"}
+                              </h3>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Category: {item.product_category ?? "N/A"}
+                              </p>
+                              {item.redeemedWithPoints && (
+                                <div className="mt-2">
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Redeemed with Points
+                                  </span>
+                                  <button
+                                    className="ml-2 text-xs text-red-600 hover:text-red-800"
+                                    onClick={() =>
+                                      cancelRedeemItem(item.cart_item_id)
+                                    }
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              )}
+                              {!item.redeemedWithPoints &&
+                                isRedeemableProduct(
+                                  item.product_name ?? ""
+                                ) && (
+                                  <button
+                                    className={`mt-2 px-2 py-1 rounded text-xs ${
+                                      canRedeem(item)
+                                        ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    }`}
+                                    disabled={!canRedeem(item)}
+                                    onClick={() =>
+                                      markRedeemItem(
+                                        item.cart_item_id,
+                                        authUser.points
+                                      )
+                                    }
+                                  >
+                                    Redeem (
+                                    {(
+                                      (getRedeemablePointCost(
+                                        item.product_name ?? ""
+                                      ) ?? 0) * item.quantity
+                                    ).toLocaleString()}{" "}
+                                    pts)
+                                  </button>
+                                )}
+                            </div>
+                          </div>
+
+                          {/* Price */}
+                          <div className="col-span-2 flex items-center justify-center">
+                            {item.redeemedWithPoints ? (
+                              <div className="text-center">
+                                <p className="text-gray-900 font-semibold">
+                                  ₱0.00
+                                </p>
+                                <p className="text-xs text-gray-400 line-through">
+                                  ₱{(item.product_price ?? 0).toFixed(2)}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-gray-900 font-semibold">
+                                ₱{(item.product_price ?? 0).toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Quantity */}
+                          <div className="col-span-2 flex items-center justify-center">
+                            <div className="inline-flex items-center border border-gray-300 rounded-lg">
+                              <button
+                                onClick={() =>
+                                  updateItemQuantity(
+                                    item.cart_item_id,
+                                    Math.max(item.quantity - 1, 1)
+                                  )
+                                }
+                                className="px-3 py-2 hover:bg-gray-100 transition-colors rounded-l-lg"
+                                disabled={item.quantity <= 1}
+                              >
+                                <Minus className="w-4 h-4 text-gray-600" />
+                              </button>
+                              <span className="px-4 py-2 bg-gray-50 text-gray-900 font-medium min-w-[3rem] text-center">
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  updateItemQuantity(
+                                    item.cart_item_id,
+                                    item.quantity + 1
+                                  )
+                                }
+                                className="px-3 py-2 hover:bg-gray-100 transition-colors rounded-r-lg"
+                              >
+                                <Plus className="w-4 h-4 text-gray-600" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Subtotal */}
+                          <div className="col-span-2 flex items-center justify-center">
+                            <p className="text-gray-900 font-bold">
+                              ₱{itemSubtotal.toFixed(2)}
+                            </p>
+                          </div>
+
+                          {/* Empty space for alignment */}
+                          <div className="col-span-1"></div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Feature Icons */}
+                {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                  <div className="flex items-center gap-4 bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="flex-shrink-0 w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+                      <Package className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-sm">
+                        Free Shipping
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        Free shipping for order above ₱100
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="flex-shrink-0 w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+                      <CreditCard className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-sm">
+                        Flexible Payment
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        Pay with secure payment options
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="flex-shrink-0 w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+                      <HeadphonesIcon className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-sm">
+                        24×7 Support
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        We support online all days
+                      </p>
+                    </div>
+                  </div>
+                </div> */}
               </div>
 
               {/* RIGHT COLUMN - Order Summary */}
-              <div>
-                <div className="bg-white rounded-2xl shadow-md flex flex-col h-full">
-                  <div className="p-6 flex-1">
-                    <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-                    <div className="space-y-3 text-gray-700">
-                      <div className="flex justify-between">
-                        <span>
-                          Subtotal ({cart.length}{" "}
-                          {cart.length === 1 ? "item" : "items"})
-                        </span>
-                        <span className="text-green-900">
-                          ₱{subtotal.toLocaleString("en-US")}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Shipping Fee</span>
-                        <span className="text-green-900">
-                          ₱{shippingFee.toLocaleString("en-US")}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 sticky top-24">
+                  <div className="px-6 py-5 border-b border-gray-200">
+                    <h2 className="text-xl font-bold text-gray-900">
+                      Order Summary
+                    </h2>
+                  </div>
+
+                  <div className="px-6 py-6 space-y-4">
+                    {/* Items List */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Items</span>
+                        <span className="text-gray-900 font-medium">
+                          {cart.length}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>
-                          Platform Fee ({Math.round(platformFeeRate * 100)}%)
-                        </span>
-                        <span className="text-green-900">
-                          ₱{platformFee.toLocaleString("en-US")}
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Subtotal</span>
+                        <span className="text-gray-900 font-medium">
+                          ₱{subtotal.toFixed(2)}
                         </span>
                       </div>
-                      <div className="border-t pt-3 flex justify-between items-center">
-                        <span className="text-lg font-bold">Total</span>
-                        <span className="text-2xl font-bold text-green-900">
-                          ₱{total.toLocaleString("en-US")}
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Shipping</span>
+                        <span className="text-gray-900 font-medium">
+                          ₱{shippingFee.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Platform Fee</span>
+                        <span className="text-gray-900 font-medium">
+                          ₱{platformFee.toFixed(2)}
                         </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Checkout Button */}
-                  <button
-                    className="w-full flex items-center justify-center bg-green-900 hover:bg-green-800 text-white font-semibold py-4 rounded-b-2xl transition"
-                    onClick={handleProceedToCheckout}
-                  >
-                    <svg
-                      className="h-5 w-5 mr-2"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      aria-hidden
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-bold text-gray-900">
+                          Total
+                        </span>
+                        <span className="text-2xl font-bold text-green-700">
+                          ₱{total.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Checkout Button */}
+                    <button
+                      onClick={handleProceedToCheckout}
+                      className="w-full bg-green-700 hover:bg-green-800 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
-                      <path
-                        d="M3 3h2l.4 2M7 13h10l4-8H5.4"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <circle cx="10" cy="20" r="1" fill="currentColor" />
-                      <circle cx="18" cy="20" r="1" fill="currentColor" />
-                    </svg>
-                    Proceed to Checkout
-                  </button>
+                      Proceed to Checkout
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </div>
+        <Footer />
       </div>
     </>
   );

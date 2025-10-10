@@ -1,29 +1,69 @@
 import { useState } from "react";
 import { Menu, X, ShoppingCart, User, LogOut, ChevronDown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore"; // ✅ adjust path
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { authUser, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Helper to scroll to features section
+  const scrollToFeatures = () => {
+    setTimeout(() => {
+      const featuresSection = document.getElementById("features-section");
+      if (featuresSection) {
+        featuresSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100); // slight delay to ensure DOM is ready
+  };
+
+  // Handler for Features link
+  const handleFeaturesClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname === "/") {
+      scrollToFeatures();
+    } else {
+      navigate("/");
+      setTimeout(scrollToFeatures, 300); // after navigation
+    }
+    setIsOpen(false);
+  };
+
+  // Handler for logo click
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname !== "/") {
+      navigate("/");
+    }
+    setIsOpen(false);
+  };
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-white border-b border-gray-300 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo */}
         <div className="flex items-center space-x-2">
-          <img
-            src="../public/DARK HORIZONTAL.png"
-            alt="SoilTrack Logo"
-            className="w-36 h-auto"
-          />
+          <a
+            href="/dashboard"
+            onClick={handleLogoClick}
+            className="focus:outline-none"
+          >
+            <img
+              src="../public/DARK HORIZONTAL.png"
+              alt="SoilTrack Logo"
+              className="w-36 h-auto cursor-pointer"
+            />
+          </a>
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex space-x-8 pl-10">
             <a
               href="#features"
-              className="hover:text-green-600 font-semibold tracking-tight"
+              onClick={handleFeaturesClick}
+              className="hover:text-green-600 font-semibold tracking-tight cursor-pointer"
             >
               Features
             </a>
@@ -128,7 +168,8 @@ function Navbar() {
           </a>
           <a
             href="#features"
-            className="block text-gray-700 hover:text-green-600 font-medium"
+            onClick={handleFeaturesClick}
+            className="block text-gray-700 hover:text-green-600 font-medium cursor-pointer"
           >
             Features
           </a>

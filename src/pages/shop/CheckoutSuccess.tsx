@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/shop/CheckoutSuccess.tsx
 import { useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -5,6 +6,8 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { useShopStore } from "../../store/useShopStore";
 import Navbar from "../../widgets/Navbar";
 import axios from "axios";
+import Lottie from "react-lottie-player";
+import loadingAnimation from "../../assets/lottie/Payment Success.json";
 
 const CheckoutSuccess = () => {
   const navigate = useNavigate();
@@ -68,9 +71,17 @@ const CheckoutSuccess = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen flex flex-col items-center justify-center bg-green-50 p-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6">
+        <div className="w-96 h-96">
+          <Lottie
+            loop
+            animationData={loadingAnimation}
+            play
+            style={{ padding: 0 }}
+          />
+        </div>
         <h1 className="text-3xl font-bold text-green-700 mb-4">
-          Payment Successful 🎉
+          Payment Successful
         </h1>
         <p className="text-gray-700 mb-6">
           Thank you for your purchase! Your order has been confirmed.
@@ -78,7 +89,7 @@ const CheckoutSuccess = () => {
         <div className="flex space-x-4">
           <button
             onClick={() => navigate("/shop")}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg shadow hover:bg-green-700"
+            className="bg-gradient-to-r from-green-700 via-green-800 to-green-900 text-white px-6 py-2 rounded-lg shadow hover:from-green-800 hover:to-green-950 transition-colors"
           >
             Continue Shopping
           </button>
