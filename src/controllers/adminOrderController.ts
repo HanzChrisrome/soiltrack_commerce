@@ -1,34 +1,47 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/controllers/adminOrderController.ts
 import type { Request, Response } from "express";
 import supabase from "../../supabaseServer";
 
-export const getAllOrders = async (req: Request, res: Response) => {
+export const getAllOrders = async (_req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from("orders")
-      .select(`
-        order_id,
-        order_ref,
-        user_id,
-        total_amount,
-        order_status,
-        shipping_status,
-        created_at,
-        order_items (
-          order_item_id,
-          product_id,
-          order_item_quantity,
-          unit_price,
-          subtotal,
-          products (
-            product_id,
-            product_name
+      .select(
+        `
+          order_id,
+          order_ref,
+          user_id,
+          total_amount,
+          order_status,
+          shipping_status,
+          created_at,
+          users (
+            user_id,
+            user_fname,
+            user_lname,
+            user_email
+          ),
+          order_items (
+            order_item_id,
+            order_item_quantity,
+            unit_price,
+            subtotal,
+            products (
+              product_id,
+              product_name
+            )
           )
-        )
-      `)
+        `
+      )
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    console.log("📦 Fetched orders:", JSON.stringify(data, null, 2));
+
+    if (error) {
+      console.error("❌ Supabase error:", error);
+      throw error;
+    }
     res.json(data);
   } catch (err: any) {
     console.error("❌ Error fetching all orders:", err.message);

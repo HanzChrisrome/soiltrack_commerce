@@ -14,9 +14,10 @@ export default function AddProduct({
   onSuccess,
   onCancel,
 }: AddProductProps) {
-  const [form, setForm] = useState<Product>({
+  const [form, setForm] = useState<Partial<Product>>({
     product_name: "",
     product_category: "Insecticide",
+    orig_price: 0,
     product_price: 0,
     product_quantity: 0,
     product_description: "",
@@ -55,7 +56,9 @@ export default function AddProduct({
     setForm((prev) => ({
       ...prev,
       [name]:
-        name === "product_price" || name === "product_quantity"
+        name === "product_price" ||
+        name === "product_quantity" ||
+        name === "orig_price"
           ? Number(value)
           : value,
     }));
@@ -75,7 +78,7 @@ export default function AddProduct({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.product_name || form.product_price <= 0) {
+    if (!form.product_name || !form.product_price || form.product_price <= 0) {
       alert("Please enter valid product details.");
       return;
     }
@@ -85,9 +88,15 @@ export default function AddProduct({
       let savedProduct: Product;
 
       if (initialData?.product_id) {
-        savedProduct = await productService.updateProduct(form, imageFile);
+        savedProduct = await productService.updateProduct(
+          form as Product,
+          imageFile
+        );
       } else {
-        savedProduct = await productService.addProduct(form, imageFile);
+        savedProduct = await productService.addProduct(
+          form as Product,
+          imageFile
+        );
       }
 
       onSuccess(savedProduct);
@@ -181,9 +190,29 @@ export default function AddProduct({
             />
           </div>
 
-          {/* Price */}
+          {/* Original/Cost Price */}
           <div>
-            <label className="block text-sm font-medium mb-1">Price (₱)</label>
+            <label className="block text-sm font-medium mb-1">
+              Original Price (₱){" "}
+              <span className="text-xs text-gray-500">(Cost/Wholesale)</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              name="orig_price"
+              value={form.orig_price || 0}
+              onChange={handleChange}
+              className="w-full rounded-md bg-gray-100 px-3 py-2"
+              min={0}
+            />
+          </div>
+
+          {/* Selling Price */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Selling Price (₱){" "}
+              <span className="text-xs text-gray-500">(Retail)</span>
+            </label>
             <input
               type="number"
               step="0.01"
@@ -193,6 +222,22 @@ export default function AddProduct({
               className="w-full rounded-md bg-gray-100 px-3 py-2"
               min={0}
             />
+            {form.orig_price && form.product_price && form.orig_price > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Markup:{" "}
+                {(
+                  ((form.product_price - form.orig_price) / form.orig_price) *
+                  100
+                ).toFixed(1)}
+                % | Margin:{" "}
+                {(
+                  ((form.product_price - form.orig_price) /
+                    form.product_price) *
+                  100
+                ).toFixed(1)}
+                %
+              </p>
+            )}
           </div>
 
           {/* Description */}

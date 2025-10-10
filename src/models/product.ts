@@ -8,9 +8,12 @@ export interface Product {
     | "Molluscicide"
     | "Fertilizer";
   product_description?: string;
-  product_price: number;
+  orig_price?: number; // Original/cost price
+  product_price: number; // Selling price
   product_quantity: number;
   product_image?: string;
   created_at?: string;
   updated_at?: string;
+  points_price?: number;
+  is_point_product?: boolean;
 }

@@ -29,6 +29,11 @@ export interface Order {
   order_items: OrderItem[];
   payment_provider_link?: string | null;
   metadata?: any;
+  users?: {
+    user_fname: string;
+    user_lname: string;
+    user_email: string;
+  } | null;
 }
 
 /**
