@@ -69,6 +69,7 @@ const Analytics = () => {
     returningCustomers: 0,
     customerRetentionRate: 0,
     avgCustomerLifetimeValue: 0,
+    topCustomer: null,
   });
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
 

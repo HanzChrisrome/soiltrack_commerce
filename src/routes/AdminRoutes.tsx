@@ -8,6 +8,7 @@ import OrdersAdmin from "../pages/Admin/ManageOrders";
 import Analytics from "../pages/Admin/Analytics";
 import ManageUsers from "../pages/Admin/ManageUsers";
 import ViewInquiries from "../pages/Admin/ViewInquiries";
+import ManageRefunds from "../pages/Admin/ManageRefunds";
 
 const AdminRoutes = () => (
   <>
@@ -27,6 +28,7 @@ const AdminRoutes = () => (
       <Route path="manage-orders" element={<OrdersAdmin />} />
       <Route path="analytics" element={<Analytics />} />
       <Route path="view-inquiries" element={<ViewInquiries />} />
+      <Route path="view-refund-request" element={<ManageRefunds />} />
     </Route>
   </>
 );
