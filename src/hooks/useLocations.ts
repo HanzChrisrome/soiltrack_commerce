@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 
+export interface ILocation {
+  code: string;
+  name: string;
+}
+
 export const useLocations = () => {
   const [regions, setRegions] = useState<any[]>([]);
   const [provinces, setProvinces] = useState<any[]>([]);

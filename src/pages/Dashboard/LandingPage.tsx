@@ -3,6 +3,10 @@ import Navbar from "../../widgets/Navbar";
 import { Plus, Minus, MapPin, Phone, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { inquiryService } from "../../services/inquiryService";
+import fertilizersImg from "../../assets/images/fertilizers.jpg.png";
+import herbicideImg from "../../assets/images/herbicide.png";
+import insecticideImg from "../../assets/images/insecticide.png";
+import pestImg from "../../assets/images/pest.png";
 
 const LandingPage = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -398,85 +402,99 @@ const LandingPage = () => {
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
             {/* Product 1 */}
-            <div className="bg-white border border-gray-200 p-10 hover:shadow-xl transition-shadow duration-300">
-              <div className="mb-6 items-center text-center">
+            <div className="bg-white border border-gray-200 pt-10 pb-0 px-10 hover:shadow-xl transition-shadow duration-300 flex flex-col items-center h-full">
+              <div className="w-full flex flex-col items-center text-center flex-grow">
                 <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                  Scaffolding & Support System
+                  Crop Nutrition (Fertilizers)
                 </h3>
-                <p className="text-gray-600 text-sm">
-                  Reliable and safe scaffolding rentals for your construction
-                  needs.
+                <p className="text-gray-600 text-sm mb-4">
+                  Essential compounds to enrich soil and supply vital nutrients
+                  for vigorous crop growth and high yields.
                 </p>
+                <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 mb-4">
+                  Shop Now →
+                </button>
               </div>
-
-              <div className="flex items-center justify-center">
+              <div className="flex items-end justify-center w-full">
                 <img
-                  src="/images/scaffolding.jpg"
-                  alt="Scaffolding & Support System"
-                  className="h-56 object-contain"
+                  src={fertilizersImg}
+                  alt="Fertilizers - Crop Nutrition"
+                  className="h-56 object-contain mx-auto mb-0"
+                  style={{ marginBottom: 0 }}
                 />
               </div>
             </div>
 
             {/* Product 2 */}
-            <div className="bg-white border border-gray-200 p-10 hover:shadow-xl transition-shadow duration-300">
-              <div className="mb-6 items-center text-center">
+            <div className="bg-white border border-gray-200 pt-10 pb-0 px-10 hover:shadow-xl transition-shadow duration-300 flex flex-col items-center h-full">
+              <div className="w-full flex flex-col items-center text-center flex-grow">
                 <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                  Demolition and Drilling Equipment
+                  Weed Control (Herbicides)
                 </h3>
-                <p className="text-gray-600 text-sm">
-                  High-performance demolition and drilling equipment for
-                  efficient project execution.
+                <p className="text-gray-600 text-sm mb-4">
+                  Selective and non-selective solutions to effectively manage
+                  and eliminate damaging weeds in your fields.
                 </p>
+                <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 mb-4">
+                  Shop Now →
+                </button>
               </div>
-
-              <div className="flex items-center justify-center">
+              <div className="flex items-end justify-center w-full">
                 <img
-                  src="/images/drilling.jpg"
-                  alt="Demolition and Drilling Equipment"
-                  className="h-56 object-contain"
+                  src={herbicideImg}
+                  alt="Herbicide - Weed Control"
+                  className="h-56 object-contain mx-auto mb-0"
+                  style={{ marginBottom: 0 }}
                 />
               </div>
             </div>
 
             {/* Product 3 */}
-            <div className="bg-white border border-gray-200 p-10 hover:shadow-xl transition-shadow duration-300">
-              <div className="mb-6 items-center text-center">
+            <div className="bg-white border border-gray-200 pt-10 pb-0 px-10 hover:shadow-xl transition-shadow duration-300 flex flex-col items-center h-full">
+              <div className="w-full flex flex-col items-center text-center flex-grow">
                 <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                  Cutting and Grinding Equipment
+                  Pest & Disease Control
                 </h3>
-                <p className="text-gray-600 text-sm">
-                  Precision cutting and grinding equipment rentals for any
-                  construction task.
+                <p className="text-gray-600 text-sm mb-4">
+                  Integrated chemical solutions (Fungicide, Insecticide,
+                  Molluscicide) to protect crops from insects, pests, and
+                  diseases.
                 </p>
+                <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 mb-4">
+                  Shop Now →
+                </button>
               </div>
-
-              <div className="flex items-center justify-center">
+              <div className="flex items-end justify-center w-full">
                 <img
-                  src="/images/cutting.jpg"
-                  alt="Cutting and Grinding Equipment"
-                  className="h-56 object-contain"
+                  src={insecticideImg}
+                  alt="Insecticide - Pest & Disease Control"
+                  className="h-56 object-contain mx-auto mb-0"
+                  style={{ marginBottom: 0 }}
                 />
               </div>
             </div>
 
             {/* Product 4 */}
-            <div className="bg-white border border-gray-200 p-10 hover:shadow-xl transition-shadow duration-300">
-              <div className="mb-6 items-center text-center">
+            <div className="bg-white border border-gray-200 pt-10 pb-0 px-10 hover:shadow-xl transition-shadow duration-300 flex flex-col items-center h-full">
+              <div className="w-full flex flex-col items-center text-center flex-grow">
                 <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                  Welding and Metal Equipment
+                  Specialty Pesticides
                 </h3>
-                <p className="text-gray-600 text-sm">
-                  Precision cutting and grinding equipment rentals for any
-                  construction task.
+                <p className="text-gray-600 text-sm mb-4">
+                  Targeted treatments, including Pesticides and other
+                  specialized chemicals, for specific crop protection
+                  challenges.
                 </p>
+                <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 mb-4">
+                  Shop Now →
+                </button>
               </div>
-
-              <div className="flex items-center justify-center">
+              <div className="flex items-end justify-center w-full">
                 <img
-                  src="/images/welding.jpg"
-                  alt="Welding and Metal Equipment"
-                  className="h-56 object-contain"
+                  src={pestImg}
+                  alt="Pesticide - Specialty Pesticides"
+                  className="h-56 object-contain mx-auto mb-0"
+                  style={{ marginBottom: 0 }}
                 />
               </div>
             </div>
