@@ -1,5 +1,6 @@
 // src/pages/shop/Cart.tsx
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useShopStore } from "../../store/useShopStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { checkoutService } from "../../services/checkoutService";
@@ -14,6 +15,7 @@ import Lottie from "react-lottie-player";
 import loadingAnimation from "../../assets/lottie/Sandy Loading.json";
 
 const Cart = () => {
+  const navigate = useNavigate();
   const { authUser } = useAuthStore();
   const {
     cart,
@@ -23,13 +25,15 @@ const Cart = () => {
     removeItemFromCart,
     redeemItemWithPoints: markRedeemItem,
     cancelRedeemItem,
+    clearCart,
   } = useShopStore();
+
   const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "COD">(
     "ONLINE"
   );
 
   useEffect(() => {
-    fetchCart(authUser!.user_id);
+    if (authUser) fetchCart(authUser.user_id);
   }, [authUser, fetchCart]);
 
   if (cartLoading)
@@ -51,8 +55,11 @@ const Cart = () => {
   }, 0);
 
   const shippingFee = cart.length > 0 ? 100 : 0;
-  let platformFeeRate =
-    subtotal < 2000 ? 0.07 : subtotal >= 10000 ? 0.03 : 0.05;
+
+  let platformFeeRate = 0.05;
+  if (subtotal < 2000) platformFeeRate = 0.07;
+  else if (subtotal >= 10000) platformFeeRate = 0.03;
+
   const platformFee = Math.round(subtotal * platformFeeRate);
   const total = subtotal + shippingFee + platformFee;
 
@@ -78,13 +85,13 @@ const Cart = () => {
           : undefined,
       })),
       {
-        product_id: null,
+        product_id: null, // COD-friendly placeholder
         product_name: "Shipping Fee",
         product_price: shippingFee,
         quantity: 1,
       },
       {
-        product_id: null,
+        product_id: null, // COD-friendly placeholder
         product_name: `Platform Fee (${Math.round(platformFeeRate * 100)}%)`,
         product_price: platformFee,
         quantity: 1,
@@ -98,11 +105,15 @@ const Cart = () => {
         total,
         paymentMethod
       );
-      if (paymentMethod === "ONLINE" && res?.url)
+
+      if (paymentMethod === "ONLINE" && res?.url) {
         window.location.href = res.url;
-      else if (paymentMethod === "COD")
-        alert("COD order created successfully!");
-      else alert("Failed to create checkout link.");
+      } else if (paymentMethod === "COD") {
+        clearCart();
+        navigate(`/checkout/success`);
+      } else {
+        alert("Checkout failed.");
+      }
     } catch (err) {
       console.error("Checkout error:", err);
       alert("Checkout failed. See console.");
@@ -115,6 +126,7 @@ const Cart = () => {
     const cost = getRedeemablePointCost(item.product_name) ?? 0;
     return authUser.points >= cost && !item.redeemedWithPoints;
   };
+
   return (
     <>
       <Navbar />
@@ -419,19 +431,19 @@ const Cart = () => {
                     </div>
 
                     {/* Payment Method Selector */}
-                    <div className="mb-4">
-                      <label className="block text-gray-700 font-medium mb-2">
-                        Payment Method
+                    <div className="mb-6">
+                      <label className="block text-gray-700 font-semibold mb-2">
+                        Select Payment Method
                       </label>
                       <select
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
                         value={paymentMethod}
                         onChange={(e) =>
                           setPaymentMethod(e.target.value as "ONLINE" | "COD")
                         }
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
                       >
                         <option value="ONLINE">Online Payment</option>
-                        <option value="COD">Cash on Delivery</option>
+                        <option value="COD">Cash on Delivery (COD)</option>
                       </select>
                     </div>
 
