@@ -16,6 +16,7 @@ export const useAdminOrdersStore = create<AdminOrdersState>((set) => ({
   fetchAllOrders: async () => {
     try {
       set({ loading: true });
+
       const res = await axios.get("http://localhost:5000/api/admin/orders");
       set({ orders: res.data, loading: false });
     } catch (err) {

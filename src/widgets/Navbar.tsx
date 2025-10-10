@@ -22,12 +22,6 @@ function Navbar() {
           {/* Desktop Nav Links */}
           <div className="hidden md:flex space-x-8 pl-10">
             <a
-              href="/"
-              className="hover:text-green-600 font-semibold tracking-tight"
-            >
-              About
-            </a>
-            <a
               href="#features"
               className="hover:text-green-600 font-semibold tracking-tight"
             >
@@ -38,12 +32,6 @@ function Navbar() {
               className="hover:text-green-600 font-semibold tracking-tight"
             >
               Shop
-            </a>
-            <a
-              href="#sustainability"
-              className="hover:text-green-600 font-semibold tracking-tight"
-            >
-              Sustainability
             </a>
             <a
               href="#contact"

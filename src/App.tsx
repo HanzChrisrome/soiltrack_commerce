@@ -42,7 +42,7 @@ const App = () => {
         {authUser ? (
           AdminRoutes()
         ) : (
-          <Route path="/admin/*" element={<Navigate to="/login" />} />
+          <Route path="/admin/*" element={<Navigate to="/" />} />
         )}
 
         {/* Auth-related Routes (Login, Register, etc.) */}

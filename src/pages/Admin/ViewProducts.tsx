@@ -2,9 +2,21 @@ import { useEffect, useState, useMemo } from "react";
 import { productService } from "../../services/productService";
 import type { Product } from "../../models/product";
 import AddProduct from "./AddProduct";
-import { Search, Pencil, Trash2 } from "lucide-react";
+import {
+  Search,
+  Pencil,
+  Plus,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+import Lottie from "react-lottie-player";
+import loadingAnimation from "../../assets/lottie/sparkels.json";
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 10;
 
 const ViewProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -17,12 +29,22 @@ const ViewProducts = () => {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
-  const [stock, setStock] = useState("All");
-  const [sortBy, setSortBy] = useState("Newest");
+  const [category, setCategory] = useState("All Products");
+  const [status, setStatus] = useState("All Status");
+  // sorting: column can be 'newest'|'price'|'stocks'
+  const [sortColumn, setSortColumn] = useState<"newest" | "price" | "stocks">(
+    "newest"
+  );
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Helper function to convert to sentence case
+  const toSentenceCase = (str: string) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
 
   const fetchProducts = async () => {
     try {
@@ -66,6 +88,27 @@ const ViewProducts = () => {
     setSelectedProduct(null);
   };
 
+  // Update product status inline (Active <-> Draft)
+  const updateProductStatus = async (
+    p: Product,
+    newStatus: "Active" | "Draft"
+  ) => {
+    try {
+      // For simplicity, map Active -> ensure quantity >=1, Draft -> set quantity to 0
+      const updated: Product = {
+        ...p,
+        product_quantity:
+          newStatus === "Active" ? Math.max(1, p.product_quantity ?? 1) : 0,
+      };
+      const saved = await productService.updateProduct(updated);
+      setProducts((prev) =>
+        prev.map((x) => (x.product_id === saved.product_id ? saved : x))
+      );
+    } catch (err) {
+      console.error("Failed to update status", err);
+    }
+  };
+
   // ✅ Filter + sort
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -76,35 +119,40 @@ const ViewProducts = () => {
       );
     }
 
-    if (category !== "All") {
+    if (category !== "All Products" && category !== "Category") {
       result = result.filter((p) => p.product_category === category);
     }
 
-    if (stock !== "All") {
-      result =
-        stock === "In Stock"
-          ? result.filter((p) => (p.product_quantity ?? 0) > 0)
-          : result.filter((p) => (p.product_quantity ?? 0) === 0);
+    if (status !== "All Status" && status !== "Status") {
+      if (status === "Active") {
+        result = result.filter((p) => (p.product_quantity ?? 0) > 0);
+      } else if (status === "Draft") {
+        result = result.filter((p) => (p.product_quantity ?? 0) === 0);
+      }
     }
 
-    if (sortBy === "Newest") {
+    // sorting by column + direction
+    if (sortColumn === "newest") {
       result = result.sort(
         (a, b) =>
           new Date(b.created_at ?? "").getTime() -
           new Date(a.created_at ?? "").getTime()
       );
-    } else if (sortBy === "Price: Low → High") {
-      result = result.sort(
-        (a, b) => (a.product_price ?? 0) - (b.product_price ?? 0)
-      );
-    } else if (sortBy === "Price: High → Low") {
-      result = result.sort(
-        (a, b) => (b.product_price ?? 0) - (a.product_price ?? 0)
+    } else if (sortColumn === "price") {
+      result = result.sort((a, b) => {
+        const diff = (a.product_price ?? 0) - (b.product_price ?? 0);
+        return sortDirection === "asc" ? diff : -diff;
+      });
+    } else if (sortColumn === "stocks") {
+      const diff = (a: Product, b: Product) =>
+        (a.product_quantity ?? 0) - (b.product_quantity ?? 0);
+      result = result.sort((a, b) =>
+        sortDirection === "asc" ? diff(a, b) : -diff(a, b)
       );
     }
 
     return result;
-  }, [products, search, category, stock, sortBy]);
+  }, [products, search, category, status, sortColumn, sortDirection]);
 
   // ✅ Pagination logic
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -113,187 +161,281 @@ const ViewProducts = () => {
     currentPage * ITEMS_PER_PAGE
   );
 
-  if (loading) return <p className="text-center mt-10">Loading products...</p>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Lottie
+          loop
+          animationData={loadingAnimation}
+          play
+          style={{ width: 150, height: 150 }}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 flex justify-center">
-      <div className="bg-white shadow-lg rounded-xl w-full max-w-7xl p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">All Products</h1>
+    <div className="">
+      <div className="px-8 mx-auto">
+        {/* Top toolbar */}
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-green-700 to-green-900 text-transparent bg-clip-text">
+          Products
+        </h1>
+        {/* Secondary filters row */}
+        <div className="bg-white rounded-lg p-4 mb-2 shadow-sm flex items-center justify-between gap-4 mt-3">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="relative w-full md:max-w-xs">
+              <Search className="absolute left-3 top-3 text-gray-400 h-5 w-5" />
+              <input
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-indigo-300 focus:outline-none"
+                placeholder="Search product"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+
+            <select
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-3 pr-8 py-2 border border-gray-200 rounded-md bg-white text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none"
+            >
+              <option value="Category">Category</option>
+              <option value="All Products">All Products</option>
+              <option value="Fertilizer">Fertilizer</option>
+              <option value="Herbicide">Herbicide</option>
+              <option value="Pesticide">Pesticide</option>
+              <option value="Insecticide">Insecticide</option>
+            </select>
+
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-3 pr-8 py-2 border border-gray-200 rounded-md bg-white text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none"
+            >
+              <option value="Status">Status</option>
+              <option value="All Status">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Draft">Draft</option>
+            </select>
+          </div>
+
           <button
             onClick={() => setAddingProduct(true)}
-            className="px-5 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800 transition"
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-700 to-green-900 text-white px-4 py-2 rounded-md hover:from-green-800 hover:to-green-950 transition-colors whitespace-nowrap"
           >
-            + Add Product
+            <Plus className="h-4 w-4" />
+            Add Product
           </button>
         </div>
 
-        {/* Search + Filters */}
-        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-900"
-            />
-          </div>
-
-          <select
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          >
-            <option>All</option>
-            <option>Fertilizer</option>
-            <option>Herbicide</option>
-            <option>Pesticide</option>
-          </select>
-
-          <select
-            value={stock}
-            onChange={(e) => {
-              setStock(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          >
-            <option>All</option>
-            <option>In Stock</option>
-            <option>Out of Stock</option>
-          </select>
-
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          >
-            <option>Newest</option>
-            <option>Price: Low → High</option>
-            <option>Price: High → Low</option>
-          </select>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                  Name
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                  Category
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                  Price
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                  Qty
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                  Image
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {paginatedProducts.length === 0 ? (
+        {/* Table container */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="text-center py-6 text-gray-500 italic"
-                  >
-                    No products found.
-                  </td>
-                </tr>
-              ) : (
-                paginatedProducts.map((p) => (
-                  <tr key={p.product_id}>
-                    <td className="px-4 py-3">{p.product_name}</td>
-                    <td className="px-4 py-3">{p.product_category}</td>
-                    <td className="px-4 py-3 font-medium">
-                      ₱
-                      {p.product_price.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.product_quantity.toLocaleString("en-US")}
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.product_image && (
-                        <img
-                          src={`http://localhost:5000/${p.product_image}`}
-                          alt={p.product_name ?? "Product"}
-                          className="h-12 w-12 object-cover rounded-md border"
-                        />
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Product Name
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Original Price
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-sm font-medium text-gray-600">
+                    <button
+                      onClick={() => {
+                        if (sortColumn === "price")
+                          setSortDirection((d) =>
+                            d === "asc" ? "desc" : "asc"
+                          );
+                        else setSortColumn("price");
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider transition-colors"
+                    >
+                      Selling Price
+                      {sortColumn === "price" ? (
+                        sortDirection === "asc" ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )
+                      ) : (
+                        <ChevronUp className="h-3.5 w-3.5 text-gray-300" />
                       )}
-                    </td>
-                    <td className="px-4 py-3 flex justify-center gap-3">
-                      {/* Edit button */}
-                      <button
-                        onClick={() => setSelectedProduct(p)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#FFAE00] bg-[#FFEDA4] hover:bg-[#FFD76B]"
-                      >
-                        <Pencil className="w-5 h-5 text-[#FFAE00]" />
-                      </button>
-                      {/* Delete button */}
-                      <button
-                        onClick={() => setDeletingProduct(p)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#FF0000] bg-[#FFA8A8] hover:bg-[#FF7A7A]"
-                      >
-                        <Trash2 className="w-5 h-5 text-[#FF0000]" />
-                      </button>
+                    </button>
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => {
+                        if (sortColumn === "stocks")
+                          setSortDirection((d) =>
+                            d === "asc" ? "desc" : "asc"
+                          );
+                        else setSortColumn("stocks");
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 uppercase tracking-wider transition-colors"
+                    >
+                      Stocks
+                      {sortColumn === "stocks" ? (
+                        sortDirection === "asc" ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )
+                      ) : (
+                        <ChevronUp className="h-3.5 w-3.5 text-gray-300" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {paginatedProducts.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="text-center py-12 text-gray-500 italic"
+                    >
+                      No products found.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  paginatedProducts.map((p, index) => {
+                    const profitMargin =
+                      p.orig_price && p.orig_price > 0
+                        ? ((p.product_price - p.orig_price) / p.orig_price) *
+                          100
+                        : null;
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center mt-6 gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-            >
-              Previous
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 border rounded ${
-                  currentPage === i + 1 ? "bg-green-900 text-white" : "bg-white"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-            >
-              Next
-            </button>
+                    return (
+                      <tr
+                        key={p.product_id}
+                        className={`hover:bg-gray-100 transition-colors ${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        }`}
+                      >
+                        <td className="px-4 py-2.5 flex items-center gap-3">
+                          {p.product_image ? (
+                            <img
+                              src={`http://localhost:5000/${p.product_image}`}
+                              alt={p.product_name}
+                              className="h-10 w-10 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center">
+                              <Package className="h-5 w-5 text-gray-400" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-medium text-gray-900 text-sm">
+                              {toSentenceCase(p.product_name)}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              SKU: {p.product_id?.substring(0, 8)}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-600 text-sm">
+                          {p.orig_price ? `₱${p.orig_price.toFixed(2)}` : "—"}
+                        </td>
+                        <td className="px-4 py-2.5 font-medium text-gray-900 text-sm">
+                          ₱{p.product_price?.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-700 text-sm">
+                          {p.product_quantity ?? 0}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <select
+                            value={
+                              (p.product_quantity ?? 0) > 0 ? "Active" : "Draft"
+                            }
+                            onChange={(e) =>
+                              updateProductStatus(
+                                p,
+                                e.target.value as "Active" | "Draft"
+                              )
+                            }
+                            className="px-2.5 py-1 text-xs border border-gray-200 rounded-md bg-white focus:ring-2 focus:ring-indigo-300 focus:outline-none"
+                          >
+                            <option value="Active">Active</option>
+                            <option value="Draft">Draft</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => setSelectedProduct(p)}
+                              className="px-2.5 py-1 rounded-md bg-green-700 text-white hover:bg-green-800 flex items-center gap-1.5 text-xs transition-colors"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Edit
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 flex items-center justify-center">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-md hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-5 w-5 text-gray-600" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`min-w-[2.5rem] px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? "bg-green-700 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-md hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-5 w-5 text-gray-600" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Add Product Modal */}
         {addingProduct && (
@@ -328,7 +470,7 @@ const ViewProducts = () => {
               <p className="mb-6">
                 Are you sure you want to delete{" "}
                 <span className="font-semibold">
-                  {deletingProduct.product_name}
+                  {deletingProduct?.product_name}
                 </span>
                 ?
               </p>
@@ -340,7 +482,9 @@ const ViewProducts = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={() => handleDelete(deletingProduct.product_id!)}
+                  onClick={() =>
+                    deletingProduct && handleDelete(deletingProduct.product_id)
+                  }
                   className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
                 >
                   Delete

@@ -18,3 +18,22 @@ body {
 .too-tight-text {
   letter-spacing: -0.8px;
 }
+
+/* Infinite scroll animation for partners */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-100% / 3));
+  }
+}
+
+.animate-scroll {
+  animation: scroll 20s linear infinite;
+  display: flex;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}

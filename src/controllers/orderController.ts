@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/controllers/orderController.ts
 import type { Request, Response } from "express";
 import supabase from "../../supabaseServer";
