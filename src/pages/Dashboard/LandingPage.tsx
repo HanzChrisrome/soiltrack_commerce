@@ -412,9 +412,6 @@ const LandingPage = () => {
                   Essential compounds to enrich soil and supply vital nutrients
                   for vigorous crop growth and high yields.
                 </p>
-                <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 mb-4">
-                  Shop Now →
-                </button>
               </div>
               <div className="flex items-end justify-center w-full">
                 <img
@@ -436,9 +433,6 @@ const LandingPage = () => {
                   Selective and non-selective solutions to effectively manage
                   and eliminate damaging weeds in your fields.
                 </p>
-                <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 mb-4">
-                  Shop Now →
-                </button>
               </div>
               <div className="flex items-end justify-center w-full">
                 <img
@@ -461,9 +455,6 @@ const LandingPage = () => {
                   Molluscicide) to protect crops from insects, pests, and
                   diseases.
                 </p>
-                <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 mb-4">
-                  Shop Now →
-                </button>
               </div>
               <div className="flex items-end justify-center w-full">
                 <img
@@ -486,9 +477,6 @@ const LandingPage = () => {
                   specialized chemicals, for specific crop protection
                   challenges.
                 </p>
-                <button className="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 mb-4">
-                  Shop Now →
-                </button>
               </div>
               <div className="flex items-end justify-center w-full">
                 <img
@@ -603,7 +591,7 @@ const LandingPage = () => {
                       Get in Touch
                     </h3>
                     <p className="text-gray-600">
-                      #263 Bunsuran III, Pandi, Bulacan
+                      #263 Sabang, Baliwag, Bulacan
                     </p>
                   </div>
                 </div>

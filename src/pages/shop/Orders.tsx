@@ -321,13 +321,12 @@ const Orders = () => {
         user_id: authUser.user_id,
         ...data,
       });
-
-      alert("✅ Your cancellation request has been submitted.");
+      toast.success("✅ Your cancellation request has been submitted.");
       setCancelOrderId(null);
       fetchOrders(authUser.user_id);
     } catch (err) {
       console.error("❌ Cancel request failed:", err);
-      alert("Failed to cancel order. Please try again.");
+      toast.error("Failed to cancel order. Please try again.");
     }
   };
 
@@ -344,13 +343,12 @@ const Orders = () => {
         user_id: authUser.user_id,
         ...data,
       });
-
-      alert("✅ Your refund request has been submitted for review.");
+      toast.success("✅ Your refund request has been submitted for review.");
       setRefundOrderId(null);
       fetchOrders(authUser.user_id);
     } catch (err) {
       console.error("❌ Refund request failed:", err);
-      alert("Failed to request refund. Please try again.");
+      toast.error("Failed to request refund. Please try again.");
     }
   };
 
@@ -363,13 +361,12 @@ const Orders = () => {
         order_id: confirmReceiveOrderId,
         user_id: authUser.user_id,
       });
-
-      alert("✅ Order marked as received!");
+      toast.success("✅ Order marked as received!");
       setConfirmReceiveOrderId(null);
       fetchOrders(authUser.user_id);
     } catch (err) {
       console.error("❌ Failed to mark order as received:", err);
-      alert("Failed to update order status. Please try again.");
+      toast.error("Failed to update order status. Please try again.");
     }
   };
 

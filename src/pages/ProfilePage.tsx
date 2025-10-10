@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from "react";
 import Navbar from "../widgets/Navbar";
+import { User, Mail, Phone, Calendar, MapPin } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { fetchUserProfileData } from "../services/userProfileService";
 import { useLocations } from "../hooks/useLocations";
@@ -231,25 +233,48 @@ const UserProfilePage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 p-6 mt-16">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Profile + Points */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Profile Card */}
-            <div className="bg-white rounded-2xl shadow-md p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800">Profile</h2>
-                  <p className="text-sm text-gray-500">Account details</p>
+            <div className="bg-white rounded-2xl shadow-md p-8 flex flex-col gap-6">
+              <div className="flex items-center gap-5 border-b border-gray-100 pb-6">
+                <div className="flex-shrink-0 w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-4xl font-bold">
+                  {data?.profile.user_fname?.[0]?.toUpperCase() ?? (
+                    <User className="w-10 h-10" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                    {data?.profile.user_fname} {data?.profile.user_lname}
+                  </h2>
+                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                    <Mail className="h-4 w-4" />
+                    <span>{data?.profile.user_email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
+                    <Phone className="h-4 w-4" />
+                    <span>{data?.profile.phone_number ?? "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      {data
+                        ? new Date(data.profile.created_at).toLocaleDateString()
+                        : "—"}
+                    </span>
+                  </div>
                 </div>
                 {showEditProfile ? (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     <button
                       onClick={onSaveProfile}
-                      className="bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+                      className="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-green-800"
                     >
                       Save
                     </button>
                     <button
                       onClick={() => setShowEditProfile(false)}
-                      className="bg-gray-300 text-gray-800 px-3 py-2 rounded-md text-sm font-medium"
+                      className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-gray-300"
                     >
                       Cancel
                     </button>
@@ -257,56 +282,50 @@ const UserProfilePage: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => setShowEditProfile(true)}
-                    className="bg-green-800 text-white px-3 py-2 rounded-md text-sm font-medium"
+                    className="bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-green-900"
                   >
                     Edit Profile
                   </button>
                 )}
               </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-2">
-                <div>
-                  <p className="text-sm text-gray-500">Name</p>
-                  {showEditProfile ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={profileDraft.user_fname ?? ""}
-                        onChange={(e) =>
-                          setProfileDraft({
-                            ...profileDraft,
-                            user_fname: e.target.value,
-                          })
-                        }
-                        className="border rounded px-2 py-1 w-1/2"
-                      />
-                      <input
-                        type="text"
-                        value={profileDraft.user_lname ?? ""}
-                        onChange={(e) =>
-                          setProfileDraft({
-                            ...profileDraft,
-                            user_lname: e.target.value,
-                          })
-                        }
-                        className="border rounded px-2 py-1 w-1/2"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-lg font-semibold">
-                      {data?.profile.user_fname} {data?.profile.user_lname}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="text-lg">{data?.profile.user_email}</p>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  {showEditProfile ? (
+              {showEditProfile && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={profileDraft.user_fname ?? ""}
+                      onChange={(e) =>
+                        setProfileDraft({
+                          ...profileDraft,
+                          user_fname: e.target.value,
+                        })
+                      }
+                      className="border rounded px-3 py-2 w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={profileDraft.user_lname ?? ""}
+                      onChange={(e) =>
+                        setProfileDraft({
+                          ...profileDraft,
+                          user_lname: e.target.value,
+                        })
+                      }
+                      className="border rounded px-3 py-2 w-full"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Phone
+                    </label>
                     <input
                       type="text"
                       value={profileDraft.phone_number ?? ""}
@@ -316,24 +335,11 @@ const UserProfilePage: React.FC = () => {
                           phone_number: e.target.value,
                         })
                       }
-                      className="border rounded px-2 py-1 w-full"
+                      className="border rounded px-3 py-2 w-full"
                     />
-                  ) : (
-                    <p className="text-lg">
-                      {data?.profile.phone_number ?? "—"}
-                    </p>
-                  )}
+                  </div>
                 </div>
-
-                <div>
-                  <p className="text-sm text-gray-500">Member since</p>
-                  <p className="text-lg">
-                    {data
-                      ? new Date(data.profile.created_at).toLocaleDateString()
-                      : "—"}
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Points Card */}
