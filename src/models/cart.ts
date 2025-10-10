@@ -7,4 +7,9 @@ export interface CartItem {
   product_price: number | null;
   product_image: string | null;
   product_category: string | null;
+
+  // Optional fields for points system
+  redeemedWithPoints?: boolean;
+  product_price_original?: number;
+  pointsCost?: number;
 }

@@ -9,54 +9,61 @@ import axios from "axios";
 const CheckoutSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authUser } = useAuthStore();
+  const { authUser, setAuthUser } = useAuthStore();
   const clearCart = useShopStore((state) => state.clearCart);
   const hasFinalized = useRef(false);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const order_ref = queryParams.get("ref");
-    const checkout_url = window.location.href; // ✅ use the current URL instead of document.referrer
+    const checkout_url = window.location.href;
 
     const finalizeOrder = async () => {
-      if (!authUser?.user_id || !order_ref || hasFinalized.current) {
-        console.warn("⚠️ Missing required data for finalizing order:", {
-          user_id: authUser?.user_id,
-          order_ref,
-          checkout_url,
-        });
-        return;
-      }
-
+      if (!authUser?.user_id || !order_ref || hasFinalized.current) return;
       hasFinalized.current = true;
-      console.log("👉 Finalizing order:", {
-        user_id: authUser.user_id,
-        order_ref,
-        checkout_url,
-      });
 
       try {
-        const res = await axios.post(
-          "http://localhost:5000/api/orders/finalize",
-          {
-            user_id: authUser.user_id,
-            order_ref,
-            checkout_url,
-          }
-        );
+        const cartItems = useShopStore.getState().cart;
 
-        console.log("✅ Finalize response:", res.data);
+        // 1️⃣ Finalize the order
+        await axios.post("http://localhost:5000/api/orders/finalize", {
+          user_id: authUser.user_id,
+          order_ref,
+          checkout_url,
+          cartItems,
+        });
+
+        // 2️⃣ Deduct points for redeemed items
+        const redeemedPoints = cartItems
+          .filter((i) => i.redeemedWithPoints)
+          .reduce((sum, i) => sum + (i.pointsCost ?? 0), 0);
+
+        if (redeemedPoints > 0) {
+          // Deduct points in the backend
+          await axios.post("http://localhost:5000/api/points/deduct", {
+            user_id: authUser.user_id,
+            points: redeemedPoints,
+          });
+
+          // Deduct points in the frontend store safely
+          setAuthUser({
+            ...authUser,
+            points: Math.max((authUser.points ?? 0) - redeemedPoints, 0),
+          });
+        }
+
+        // 3️⃣ Clear cart
         clearCart();
       } catch (err: any) {
         console.error(
-          "❌ Failed to finalize order:",
+          "Failed to finalize order or deduct points:",
           err.response?.data || err.message
         );
       }
     };
 
     finalizeOrder();
-  }, [authUser, location.search, clearCart]);
+  }, [authUser, location.search, clearCart, setAuthUser]);
 
   return (
     <>

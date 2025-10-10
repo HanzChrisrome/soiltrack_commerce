@@ -23,11 +23,8 @@ const App = () => {
 
   if (!isAuthLoaded) {
     return (
-      <div
-        data-theme={theme}
-        className="bg-base-100 flex items-center justify-center h-screen"
-      >
-        <Loader className="size-10 animate-spin" />
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
+        <div className="w-16 h-16 border-4 border-green-900 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -49,7 +46,7 @@ const App = () => {
         )}
 
         {/* Auth-related Routes (Login, Register, etc.) */}
-        {AuthRoutes(authUser)}
+        {AuthRoutes()}
 
         {/* Unauthorized fallback */}
         <Route path="/unauthorized" element={<Unauthorized />} />

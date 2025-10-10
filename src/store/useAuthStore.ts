@@ -14,6 +14,7 @@ export type AuthUser = {
   user_barangay: string; // stored in UPPERCASE
   role_id: number;
   role_name: string;
+  points: number; // Add this
 };
 
 // Raw Supabase user data shape
@@ -27,6 +28,7 @@ type SupabaseUserData = {
   user_barangay: string;
   role_id: number;
   roles?: { role_name: string } | { role_name: string }[];
+  points: number; // Add this
 };
 
 interface AuthState {
@@ -39,6 +41,7 @@ interface AuthState {
   isLoggingOut: boolean;
   isForgotPassword: boolean;
   isChangingPassword: boolean;
+  setAuthUser: (user: AuthUser | null) => void;
 
   checkAuth: () => Promise<void>;
   signup: (data: {
@@ -96,7 +99,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data: userLoggedIn, error: userError } = await supabase
         .from("users")
         .select(
-          "user_id, user_email, user_fname, user_lname, user_municipality, user_province, user_barangay, role_id, roles(role_name)"
+          "user_id, user_email, user_fname, user_lname, user_municipality, user_province, user_barangay, role_id, roles(role_name), points"
         )
         .eq("user_id", data.user.id)
         .single();
@@ -123,6 +126,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user_barangay: userData.user_barangay,
         role_id: userData.role_id,
         role_name: roleName ?? "User",
+        points: userData.points, // Add this
       };
 
       set({ authUser: user, isAuthLoaded: true, hasCheckedAuth: true });
@@ -209,7 +213,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data, error: userError } = await supabase
       .from("users")
       .select(
-        "user_id, user_email, user_fname, user_lname, user_municipality, user_province, user_barangay, role_id, roles(role_name)"
+        "user_id, user_email, user_fname, user_lname, user_municipality, user_province, user_barangay, role_id, roles(role_name), points"
       )
       .eq("user_email", email)
       .in("role_id", [1, 2, 3])
@@ -249,6 +253,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user_barangay: userData.user_barangay,
       role_id: userData.role_id,
       role_name: roleName ?? "User",
+      points: userData.points,
     };
 
     set({ authUser: user, isLoggingIn: false });
@@ -303,4 +308,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     toast.dismiss();
     toast.success("Logged out successfully!");
   },
+  setAuthUser: (user) => set({ authUser: user }),
 }));
