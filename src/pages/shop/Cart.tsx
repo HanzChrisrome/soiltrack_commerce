@@ -1,5 +1,6 @@
 // src/pages/shop/Cart.tsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useShopStore } from "../../store/useShopStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { checkoutService } from "../../services/checkoutService";
@@ -8,19 +9,13 @@ import {
   isRedeemableProduct,
   getRedeemablePointCost,
 } from "../../models/redeemableProducts";
-import {
-  X,
-  Minus,
-  Plus,
-  Package,
-  CreditCard,
-  HeadphonesIcon,
-} from "lucide-react";
+import { X, Minus, Plus, Package } from "lucide-react";
 import Footer from "../../widgets/Footer";
 import Lottie from "react-lottie-player";
 import loadingAnimation from "../../assets/lottie/Sandy Loading.json";
 
 const Cart = () => {
+  const navigate = useNavigate();
   const { authUser } = useAuthStore();
   const {
     cart,
@@ -30,10 +25,15 @@ const Cart = () => {
     removeItemFromCart,
     redeemItemWithPoints: markRedeemItem,
     cancelRedeemItem,
+    clearCart,
   } = useShopStore();
 
+  const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "COD">(
+    "ONLINE"
+  );
+
   useEffect(() => {
-    fetchCart(authUser!.user_id);
+    if (authUser) fetchCart(authUser.user_id);
   }, [authUser, fetchCart]);
 
   if (cartLoading)
@@ -48,7 +48,6 @@ const Cart = () => {
       </div>
     );
 
-  // UI-only subtotal (redeemed items show as 0)
   const subtotal = cart.reduce((sum, item) => {
     const price =
       item.redeemedWithPoints && item.pointsCost ? 0 : item.product_price ?? 0;
@@ -56,13 +55,11 @@ const Cart = () => {
   }, 0);
 
   const shippingFee = cart.length > 0 ? 100 : 0;
-  // Dynamic platform fee
-  let platformFeeRate = 0.05; // default medium
-  if (subtotal < 2000) {
-    platformFeeRate = 0.07; // small order
-  } else if (subtotal >= 10000) {
-    platformFeeRate = 0.03; // large/bulk order
-  }
+
+  let platformFeeRate = 0.05;
+  if (subtotal < 2000) platformFeeRate = 0.07;
+  else if (subtotal >= 10000) platformFeeRate = 0.03;
+
   const platformFee = Math.round(subtotal * platformFeeRate);
   const total = subtotal + shippingFee + platformFee;
 
@@ -88,13 +85,13 @@ const Cart = () => {
           : undefined,
       })),
       {
-        product_id: "SHIPPING_FEE",
+        product_id: null, // COD-friendly placeholder
         product_name: "Shipping Fee",
         product_price: shippingFee,
         quantity: 1,
       },
       {
-        product_id: "PLATFORM_FEE",
+        product_id: null, // COD-friendly placeholder
         product_name: `Platform Fee (${Math.round(platformFeeRate * 100)}%)`,
         product_price: platformFee,
         quantity: 1,
@@ -105,10 +102,18 @@ const Cart = () => {
       const res = await checkoutService.createPaymentLink(
         authUser.user_id,
         itemsPayload,
-        total
+        total,
+        paymentMethod
       );
-      if (res?.url) window.location.href = res.url;
-      else alert("Failed to create checkout link.");
+
+      if (paymentMethod === "ONLINE" && res?.url) {
+        window.location.href = res.url;
+      } else if (paymentMethod === "COD") {
+        clearCart();
+        navigate(`/checkout/success`);
+      } else {
+        alert("Checkout failed.");
+      }
     } catch (err) {
       console.error("Checkout error:", err);
       alert("Checkout failed. See console.");
@@ -146,9 +151,8 @@ const Cart = () => {
             proceeding to checkout.
           </p>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-          {/* Page Title */}
 
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="inline-flex items-center justify-center w-24 h-24 bg-gray-100 rounded-full mb-4">
@@ -389,6 +393,7 @@ const Cart = () => {
               </div>
 
               {/* RIGHT COLUMN - Order Summary */}
+
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 sticky top-24">
                   <div className="px-6 py-5 border-b border-gray-200">
@@ -398,7 +403,6 @@ const Cart = () => {
                   </div>
 
                   <div className="px-6 py-6 space-y-4">
-                    {/* Items List */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Items</span>
@@ -426,19 +430,32 @@ const Cart = () => {
                       </div>
                     </div>
 
-                    {/* Divider */}
-                    <div className="border-t border-gray-200 pt-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold text-gray-900">
-                          Total
-                        </span>
-                        <span className="text-2xl font-bold text-green-700">
-                          ₱{total.toFixed(2)}
-                        </span>
-                      </div>
+                    {/* Payment Method Selector */}
+                    <div className="mb-6">
+                      <label className="block text-gray-700 font-semibold mb-2">
+                        Select Payment Method
+                      </label>
+                      <select
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                        value={paymentMethod}
+                        onChange={(e) =>
+                          setPaymentMethod(e.target.value as "ONLINE" | "COD")
+                        }
+                      >
+                        <option value="ONLINE">Online Payment</option>
+                        <option value="COD">Cash on Delivery (COD)</option>
+                      </select>
                     </div>
 
-                    {/* Checkout Button */}
+                    <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
+                      <span className="text-lg font-bold text-gray-900">
+                        Total
+                      </span>
+                      <span className="text-2xl font-bold text-green-700">
+                        ₱{total.toFixed(2)}
+                      </span>
+                    </div>
+
                     <button
                       onClick={handleProceedToCheckout}
                       className="w-full bg-green-700 hover:bg-green-800 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
