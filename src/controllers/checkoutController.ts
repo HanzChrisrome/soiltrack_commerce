@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import type { Request, Response } from "express";
 import crypto from "crypto";
-import supabase from "../../supabaseServer";
 
 export const createCheckoutLink = async (req: Request, res: Response) => {
   try {
@@ -58,69 +58,32 @@ export const createCheckoutLink = async (req: Request, res: Response) => {
       if (!checkoutUrl)
         return res.status(500).json({ error: "Unexpected PayMongo response" });
 
-      // Insert order and items in Supabase
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_ref: orderRef,
-          user_id,
-          total_amount: total * 100, // store in centavos
-          order_status: "pending",
-          payment_provider_link: checkoutUrl,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      // For ONLINE payment: Don't create order yet!
+      // Store the checkout data temporarily - order will be created only after successful payment
+      // This prevents cancelled/incomplete payments from creating orphaned orders in the database
 
-      if (orderError) throw orderError;
+      // Store items data as metadata for later order creation
+      const sessionMetadata = {
+        user_id,
+        items,
+        total_amount: total * 100,
+        created_at: new Date().toISOString(),
+      };
 
-      const orderId = orderData.order_id;
+      // You can optionally store this in a temporary sessions table or just pass via URL
+      // For now, we'll rely on the cart still being available when user returns
 
-      const orderItems = items.map((i: any) => ({
-        order_id: orderId,
-        product_id: i.product_id ?? null,
-        unit_price: Math.round((i.product_price ?? 0) * 100),
-        order_item_quantity: i.quantity,
-        subtotal: Math.round((i.product_price ?? 0) * i.quantity * 100),
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-      if (itemsError) throw itemsError;
-
-      return res.json({ url: checkoutUrl, order_ref: orderRef });
+      return res.json({
+        url: checkoutUrl,
+        order_ref: orderRef,
+        metadata: sessionMetadata,
+      });
     }
 
-    // COD Payment
-    const { data: codOrder, error: codError } = await supabase
-      .from("orders")
-      .insert({
-        order_ref: orderRef,
-        user_id,
-        total_amount: total * 100, // store in centavos
-        order_status: "pending",
-        payment_provider_link: null,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (codError) throw codError;
-    const orderId = codOrder.order_id;
-
-    const codItems = items.map((i: any) => ({
-      order_id: orderId,
-      product_id: i.product_id ?? null,
-      unit_price: Math.round((i.product_price ?? 0) * 100),
-      order_item_quantity: i.quantity,
-      subtotal: Math.round((i.product_price ?? 0) * i.quantity * 100),
-    }));
-
-    const { error: codItemsError } = await supabase
-      .from("order_items")
-      .insert(codItems);
-    if (codItemsError) throw codItemsError;
+    // COD Payment - Don't create order yet, just return order_ref
+    // Order will be created in finalizeOrder endpoint (same as ONLINE flow)
+    // This ensures both payment methods go through the same finalization process
+    // and all fees (shipping, platform) are properly calculated and stored
 
     return res.json({ order_ref: orderRef });
   } catch (err: any) {

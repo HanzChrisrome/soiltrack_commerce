@@ -15,6 +15,10 @@ export const fetchOrdersByUser = async (user_id: string): Promise<Order[]> => {
       order_status,
       shipping_status,
       created_at,
+      payment_method,
+      platform_fee,
+      shipping_fee,
+      points_used,
       order_items (
         order_item_id,
         product_id,

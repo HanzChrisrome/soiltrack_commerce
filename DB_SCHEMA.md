@@ -38,6 +38,10 @@ orders(TABLE)
 - payment_provider_data (TEXT)
 - created_at (TIMESTAMP)
 - shipping_status (TEXT)
+- payment_method (TEXT)
+- shipping_fee (INT)
+- platform_fee (INT)
+- points_used (INT) -- Points redeemed as voucher for this order
 
 products (TABLE)
 

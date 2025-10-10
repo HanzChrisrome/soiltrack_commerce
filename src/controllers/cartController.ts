@@ -140,4 +140,25 @@ router.delete("/:cart_item_id", async (req, res) => {
   }
 });
 
+/**
+ * Clear entire cart for a user
+ */
+router.delete("/clear/:user_id", async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    const { error } = await supabase
+      .from("cart_items")
+      .delete()
+      .eq("user_id", user_id);
+
+    if (error) throw error;
+
+    res.json({ message: "Cart cleared successfully" });
+  } catch (err: any) {
+    console.error("❌ Error clearing cart:", err.message);
+    res.status(500).json({ error: err.message || "Failed to clear cart" });
+  }
+});
+
 export default router;

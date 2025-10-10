@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/checkoutService.ts
 import axios from "axios";
 
@@ -14,8 +15,15 @@ export const checkoutService = {
       user_id,
       items,
       total,
-      payment_method,
+      paymentMethod: payment_method, // Backend expects camelCase
     });
     return res.data; // expects { url?, order_ref }
+  },
+
+  clearCart: async (user_id: string) => {
+    const res = await axios.delete(
+      `http://localhost:5000/api/cart/clear/${user_id}`
+    );
+    return res.data;
   },
 };

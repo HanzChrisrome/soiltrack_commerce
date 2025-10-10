@@ -19,6 +19,9 @@ export const cartService = {
   removeItem: (cart_item_id: string) =>
     axios.delete(`${API_URL}/${cart_item_id}`).then((res) => res.data),
 
+  clearCart: (user_id: string) =>
+    axios.delete(`${API_URL}/clear/${user_id}`).then((res) => res.data),
+
   updateRedeemedStatus: async (cart_item_id: string, redeemed: boolean) => {
     console.log(
       `[API MOCK] Update cart item ${cart_item_id} redeemed status to: ${redeemed}`

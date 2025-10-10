@@ -25,7 +25,6 @@ const Cart = () => {
     removeItemFromCart,
     redeemItemWithPoints: markRedeemItem,
     cancelRedeemItem,
-    clearCart,
   } = useShopStore();
 
   const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "COD">(
@@ -84,18 +83,24 @@ const Cart = () => {
           ? getRedeemablePointCost(ci.product_name ?? "")
           : undefined,
       })),
-      {
-        product_id: null, // COD-friendly placeholder
-        product_name: "Shipping Fee",
-        product_price: shippingFee,
-        quantity: 1,
-      },
-      {
-        product_id: null, // COD-friendly placeholder
-        product_name: `Platform Fee (${Math.round(platformFeeRate * 100)}%)`,
-        product_price: platformFee,
-        quantity: 1,
-      },
+      ...(paymentMethod === "ONLINE"
+        ? [
+            {
+              product_id: null,
+              product_name: "Shipping Fee",
+              product_price: shippingFee,
+              quantity: 1,
+            },
+            {
+              product_id: null,
+              product_name: `Platform Fee (${Math.round(
+                platformFeeRate * 100
+              )}%)`,
+              product_price: platformFee,
+              quantity: 1,
+            },
+          ]
+        : []),
     ];
 
     try {
@@ -106,17 +111,42 @@ const Cart = () => {
         paymentMethod
       );
 
-      if (paymentMethod === "ONLINE" && res?.url) {
-        window.location.href = res.url;
+      // Save checkout summary to localStorage for later use in success page
+      const checkoutSummary = {
+        total,
+        subtotal,
+        shippingFee,
+        platformFee,
+        platformFeeRate,
+        paymentMethod, // Store the selected payment method
+        itemsPayload, // Save the original items with fees
+        redeemedItems: cart
+          .filter((item) => item.redeemedWithPoints)
+          .map((item) => ({
+            product_id: item.product_id,
+            pointsCost: item.pointsCost || 0,
+          })), // Track which items were redeemed
+        timestamp: Date.now(),
+      };
+      localStorage.setItem("checkout_summary", JSON.stringify(checkoutSummary));
+
+      if (paymentMethod === "ONLINE") {
+        if (res?.url) {
+          // Order will be created in CheckoutSuccess page after payment confirmation
+          // This way if user cancels, no order is created in database
+          window.location.href = res.url;
+        } else {
+          console.error("No checkout URL received:", res);
+          alert("Failed to create payment link. Please try again.");
+        }
       } else if (paymentMethod === "COD") {
-        clearCart();
-        navigate(`/checkout/success`);
-      } else {
-        alert("Checkout failed.");
+        // COD: Order will be created in CheckoutSuccess, don't clear cart yet
+        // Navigate with order_ref so success page can create the order
+        navigate(`/checkout/success?ref=${res.order_ref}`);
       }
     } catch (err) {
       console.error("Checkout error:", err);
-      alert("Checkout failed. See console.");
+      alert("Checkout failed. Please try again.");
     }
   };
 
@@ -267,7 +297,7 @@ const Cart = () => {
                                     onClick={() =>
                                       markRedeemItem(
                                         item.cart_item_id,
-                                        authUser.points
+                                        authUser?.points ?? 0
                                       )
                                     }
                                   >

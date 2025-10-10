@@ -7,6 +7,10 @@ interface AdminOrdersState {
   loading: boolean;
   fetchAllOrders: () => Promise<void>;
   updateOrderStatus: (orderId: string, newStatus: string) => Promise<void>;
+  updatePaymentStatus: (
+    orderId: string,
+    newPaymentStatus: string
+  ) => Promise<void>;
 }
 
 export const useAdminOrdersStore = create<AdminOrdersState>((set) => ({
@@ -33,6 +37,20 @@ export const useAdminOrdersStore = create<AdminOrdersState>((set) => ({
       });
     } catch (err) {
       console.error("❌ Failed to update order status:", err);
+    }
+  },
+
+  updatePaymentStatus: async (orderId: string, newPaymentStatus: string) => {
+    try {
+      await axios.put(
+        "http://localhost:5000/api/admin/orders/update-payment-status",
+        {
+          order_id: orderId,
+          payment_status: newPaymentStatus,
+        }
+      );
+    } catch (err) {
+      console.error("❌ Failed to update payment status:", err);
     }
   },
 }));

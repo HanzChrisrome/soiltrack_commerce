@@ -30,7 +30,7 @@ interface ShopState {
   cancelRedeemItem: (cart_item_id: string) => void;
   refreshProducts: () => Promise<void>;
   refreshCart: (user_id: string) => Promise<void>;
-  clearCart: () => void;
+  clearCart: (user_id: string) => Promise<void>;
 }
 
 export const useShopStore = create<ShopState>((set, get) => ({
@@ -213,7 +213,12 @@ export const useShopStore = create<ShopState>((set, get) => ({
   },
 
   // Clear cart
-  clearCart: () => {
-    set({ cart: [], lastFetchedCart: Date.now() });
+  clearCart: async (user_id: string) => {
+    try {
+      await cartService.clearCart(user_id);
+      set({ cart: [], lastFetchedCart: Date.now() });
+    } catch (error) {
+      console.error("Failed to clear cart:", error);
+    }
   },
 }));

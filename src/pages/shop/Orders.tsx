@@ -35,7 +35,7 @@ const TABS = [
 const ITEMS_PER_PAGE = 7;
 
 const Orders = () => {
-  const { authUser } = useAuthStore();
+  const { authUser, setAuthUser } = useAuthStore();
   const { orders, fetchOrders, loading } = useOrdersStore();
   const [activeTab, setActiveTab] = useState("all");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -125,12 +125,32 @@ const Orders = () => {
         20,
         yPosition
       );
-      pdf.text(`Status: ${order.shipping_status}`, pageWidth - 20, yPosition, {
-        align: "right",
-      });
+      pdf.text(
+        `Shipping Status: ${order.shipping_status}`,
+        pageWidth - 20,
+        yPosition,
+        {
+          align: "right",
+        }
+      );
 
       yPosition += 6;
       pdf.text(`Email: ${authUser?.user_email || "N/A"}`, 20, yPosition);
+      pdf.text(
+        `Order Status: ${order.order_status ?? "N/A"}`,
+        pageWidth - 20,
+        yPosition,
+        {
+          align: "right",
+        }
+      );
+
+      yPosition += 6;
+      pdf.text(
+        `Payment Method: ${order.payment_method || "COD"}`,
+        20,
+        yPosition
+      );
 
       yPosition += 15;
 
@@ -155,40 +175,108 @@ const Orders = () => {
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
 
-      order.order_items.forEach((item: OrderItem, index: number) => {
-        // Alternating row colors
-        if (index % 2 === 0) {
-          pdf.setFillColor(250, 250, 250);
-          pdf.rect(15, yPosition, pageWidth - 30, 7, "F");
-        }
+      order.order_items
+        .filter((item: OrderItem) => item.product_id !== null)
+        .forEach((item: OrderItem, index: number) => {
+          // Alternating row colors
+          if (index % 2 === 0) {
+            pdf.setFillColor(250, 250, 250);
+            pdf.rect(15, yPosition, pageWidth - 30, 7, "F");
+          }
 
-        const productName = item.products?.product_name || "Unknown Product";
-        const quantity = item.order_item_quantity;
-        const unitPrice = `₱${(item.unit_price / 100).toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`;
-        const subtotal = `₱${(item.subtotal / 100).toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`;
+          const productName = item.products?.product_name || "Unknown Product";
+          const quantity = item.order_item_quantity;
+          const unitPrice = `₱${(item.unit_price / 100).toLocaleString(
+            "en-US",
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }
+          )}`;
+          const subtotal = `₱${(item.subtotal / 100).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`;
 
-        pdf.text(productName, 20, yPosition + 5);
-        pdf.text(quantity.toString(), pageWidth / 2 + 10, yPosition + 5, {
-          align: "center",
+          pdf.text(productName, 20, yPosition + 5);
+          pdf.text(quantity.toString(), pageWidth / 2 + 10, yPosition + 5, {
+            align: "center",
+          });
+          pdf.text(unitPrice, pageWidth / 2 + 40, yPosition + 5, {
+            align: "right",
+          });
+          pdf.text(subtotal, pageWidth - 20, yPosition + 5, { align: "right" });
+
+          yPosition += 7;
         });
-        pdf.text(unitPrice, pageWidth / 2 + 40, yPosition + 5, {
-          align: "right",
-        });
-        pdf.text(subtotal, pageWidth - 20, yPosition + 5, { align: "right" });
-
-        yPosition += 7;
-      });
 
       // Total Section
       yPosition += 5;
       pdf.setDrawColor(200, 200, 200);
       pdf.line(15, yPosition, pageWidth - 15, yPosition);
+
+      yPosition += 8;
+
+      // Subtotal calculation (total - fees)
+      const orderSubtotal =
+        order.total_amount -
+        (order.shipping_fee || 0) -
+        (order.platform_fee || 0);
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Subtotal:", pageWidth / 2 + 10, yPosition);
+      pdf.text(
+        `₱${(orderSubtotal / 100).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        pageWidth - 20,
+        yPosition,
+        { align: "right" }
+      );
+
+      yPosition += 6;
+      pdf.text("Shipping Fee:", pageWidth / 2 + 10, yPosition);
+      pdf.text(
+        `₱${((order.shipping_fee || 0) / 100).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        pageWidth - 20,
+        yPosition,
+        { align: "right" }
+      );
+
+      yPosition += 6;
+      pdf.text("Platform Fee:", pageWidth / 2 + 10, yPosition);
+      pdf.text(
+        `₱${((order.platform_fee || 0) / 100).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        pageWidth - 20,
+        yPosition,
+        { align: "right" }
+      );
+
+      // Points discount if applicable
+      if (order.points_used && order.points_used > 0) {
+        yPosition += 6;
+        pdf.setTextColor(184, 134, 11); // Gold color for points
+        pdf.text("Points Voucher:", pageWidth / 2 + 10, yPosition);
+        pdf.text(
+          `${order.points_used} points used`,
+          pageWidth - 20,
+          yPosition,
+          { align: "right" }
+        );
+        pdf.setTextColor(0, 0, 0); // Reset to black
+      }
+
+      yPosition += 8;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(pageWidth / 2 + 10, yPosition, pageWidth - 20, yPosition);
 
       yPosition += 8;
       pdf.setFontSize(12);
@@ -278,7 +366,9 @@ const Orders = () => {
         filtered = filtered.filter(
           (o) =>
             o.shipping_status === "For Cancellation" ||
-            o.shipping_status === "For Refund"
+            o.shipping_status === "For Refund" ||
+            o.shipping_status === "Cancelled" ||
+            o.shipping_status === "Refunded"
         );
       } else {
         filtered = filtered.filter((o) => o.shipping_status === activeTab);
@@ -357,11 +447,30 @@ const Orders = () => {
     if (!confirmReceiveOrderId || !authUser) return;
 
     try {
-      await axios.post("http://localhost:5000/api/orders/mark-received", {
-        order_id: confirmReceiveOrderId,
-        user_id: authUser.user_id,
-      });
-      toast.success("✅ Order marked as received!");
+      const response = await axios.post(
+        "http://localhost:5000/api/orders/mark-received",
+        {
+          order_id: confirmReceiveOrderId,
+          user_id: authUser.user_id,
+        }
+      );
+
+      const pointsAwarded = response.data?.pointsAwarded || 0;
+
+      // Update user's points in local state
+      if (pointsAwarded > 0 && authUser) {
+        const updatedPoints = (authUser.points || 0) + pointsAwarded;
+        setAuthUser({ ...authUser, points: updatedPoints });
+      }
+
+      if (pointsAwarded > 0) {
+        toast.success(
+          `✅ Order marked as received! You earned ${pointsAwarded.toLocaleString()} points! 🎁`
+        );
+      } else {
+        toast.success("✅ Order marked as received!");
+      }
+
       setConfirmReceiveOrderId(null);
       fetchOrders(authUser.user_id);
     } catch (err) {
@@ -538,6 +647,23 @@ const Orders = () => {
                             )}
                           </p>
                         </div>
+                        <div className="h-8 w-px bg-gray-300"></div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            Payment
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-gray-700 font-medium">
+                              {order.payment_method || "COD"}
+                            </p>
+                            {order.points_used && order.points_used > 0 ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                {order.points_used} pts used
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-3">
@@ -584,51 +710,120 @@ const Orders = () => {
 
                     {expandedOrderId === order.order_id && (
                       <div className="space-y-3 mb-4">
-                        {order.order_items?.map((item) => (
-                          <div
-                            key={item.order_item_id}
-                            className="flex items-center gap-4 bg-gray-50 rounded-lg p-4 border border-gray-200"
-                          >
-                            {item.products?.product_image ? (
-                              <img
-                                src={`http://localhost:5000/${item.products.product_image}`}
-                                alt={item.products.product_name}
-                                className="h-20 w-20 object-cover rounded-lg border border-gray-200"
-                              />
-                            ) : (
-                              <div className="h-20 w-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
-                                <Package className="h-8 w-8" />
+                        {order.order_items
+                          ?.filter((item) => item.product_id !== null)
+                          .map((item) => (
+                            <div
+                              key={item.order_item_id}
+                              className="flex items-center gap-4 bg-gray-50 rounded-lg p-4 border border-gray-200"
+                            >
+                              {item.products?.product_image ? (
+                                <img
+                                  src={`http://localhost:5000/${item.products.product_image}`}
+                                  alt={item.products.product_name}
+                                  className="h-20 w-20 object-cover rounded-lg border border-gray-200"
+                                />
+                              ) : (
+                                <div className="h-20 w-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
+                                  <Package className="h-8 w-8" />
+                                </div>
+                              )}
+
+                              <div className="flex-1">
+                                <h3 className="text-base font-semibold text-gray-900 mb-1">
+                                  {item.products?.product_name ||
+                                    "Unnamed Product"}
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                  Quantity: {item.order_item_quantity} × ₱
+                                  {(item.unit_price / 100).toLocaleString(
+                                    "en-US"
+                                  )}
+                                </p>
                               </div>
-                            )}
 
-                            <div className="flex-1">
-                              <h3 className="text-base font-semibold text-gray-900 mb-1">
-                                {item.products?.product_name ||
-                                  "Unnamed Product"}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                Quantity: {item.order_item_quantity} × ₱
-                                {(item.unit_price / 100).toLocaleString(
-                                  "en-US"
-                                )}
-                              </p>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500 mb-1">
+                                  Subtotal
+                                </p>
+                                <p className="text-lg font-bold text-green-900">
+                                  ₱
+                                  {(item.subtotal / 100).toLocaleString(
+                                    "en-US"
+                                  )}
+                                </p>
+                              </div>
                             </div>
-
-                            <div className="text-right">
-                              <p className="text-xs text-gray-500 mb-1">
-                                Subtotal
-                              </p>
-                              <p className="text-lg font-bold text-green-900">
-                                ₱{(item.subtotal / 100).toLocaleString("en-US")}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     )}
 
                     {/* Order Footer */}
                     <div className="border-t border-gray-200 pt-4 mt-4">
+                      {/* Fee Breakdown */}
+                      {expandedOrderId === order.order_id && (
+                        <div className="mb-4 bg-gray-50 rounded-lg p-4 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">
+                              Items Subtotal:
+                            </span>
+                            <span className="text-gray-900 font-medium">
+                              ₱
+                              {(
+                                (order.total_amount -
+                                  (order.shipping_fee || 0) -
+                                  (order.platform_fee || 0)) /
+                                100
+                              ).toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Shipping Fee:</span>
+                            <span className="text-gray-900 font-medium">
+                              ₱
+                              {((order.shipping_fee || 0) / 100).toLocaleString(
+                                "en-US",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Platform Fee:</span>
+                            <span className="text-gray-900 font-medium">
+                              ₱
+                              {((order.platform_fee || 0) / 100).toLocaleString(
+                                "en-US",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )}
+                            </span>
+                          </div>
+                          <div className="border-t border-gray-300 pt-2 flex justify-between">
+                            <span className="text-gray-900 font-semibold">
+                              Total:
+                            </span>
+                            <span className="text-green-900 font-bold text-lg">
+                              ₱
+                              {(order.total_amount / 100).toLocaleString(
+                                "en-US",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
                           <span className="text-2xl font-bold text-green-900">

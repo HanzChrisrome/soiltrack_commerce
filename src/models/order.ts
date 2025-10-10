@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/types/orders.ts
 
 export interface Product {
@@ -25,6 +26,10 @@ export interface Order {
   total_amount: number;
   order_status: string | null;
   shipping_status: string | null;
+  payment_method?: string | null;
+  platform_fee?: number | null;
+  shipping_fee?: number | null;
+  points_used?: number | null; // Points redeemed as voucher
   created_at: string;
   order_items: OrderItem[];
   payment_provider_link?: string | null;

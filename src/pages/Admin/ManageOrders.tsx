@@ -5,7 +5,6 @@ import jsPDF from "jspdf";
 import {
   Printer,
   Search,
-  Download,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -23,7 +22,7 @@ const ITEMS_PER_PAGE = 10;
 const ALL_STATUSES = [
   "To Ship",
   "To Receive",
-  "Received",
+  "Delivered",
   "For Cancellation",
   "For Refund",
   "Cancelled",
@@ -31,17 +30,16 @@ const ALL_STATUSES = [
 ];
 
 // ✅ Admin can only change to these statuses
-const EDITABLE_STATUSES = [
-  "To Ship",
-  "To Receive",
-  "Received",
-  "Cancelled",
-  "Refunded",
-];
+const EDITABLE_STATUSES = ["To Ship", "To Receive", "Delivered"];
 
 const ManageOrders = () => {
-  const { orders, fetchAllOrders, updateOrderStatus, loading } =
-    useAdminOrdersStore();
+  const {
+    orders,
+    fetchAllOrders,
+    updateOrderStatus,
+    updatePaymentStatus,
+    loading,
+  } = useAdminOrdersStore();
 
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
@@ -53,6 +51,12 @@ const ManageOrders = () => {
   const [statusChangeModal, setStatusChangeModal] = useState<{
     order: Order;
     newStatus: string;
+  } | null>(null);
+
+  // Payment status change modal
+  const [paymentStatusModal, setPaymentStatusModal] = useState<{
+    order: Order;
+    newPaymentStatus: string;
   } | null>(null);
 
   useEffect(() => {
@@ -173,12 +177,40 @@ const ManageOrders = () => {
         20,
         yPosition
       );
-      pdf.text(`Status: ${order.shipping_status}`, pageWidth - 20, yPosition, {
-        align: "right",
-      });
+      pdf.text(
+        `Shipping Status: ${order.shipping_status}`,
+        pageWidth - 20,
+        yPosition,
+        {
+          align: "right",
+        }
+      );
+
+      yPosition += 6;
+      pdf.text(
+        `Order Status: ${order.order_status ?? "N/A"}`,
+        pageWidth - 20,
+        yPosition,
+        {
+          align: "right",
+        }
+      );
 
       yPosition += 6;
       pdf.text(`Email: ${order.users?.user_email || "N/A"}`, 20, yPosition);
+
+      yPosition += 6;
+      pdf.text(
+        `Payment Method: ${order.payment_method || "COD"}`,
+        20,
+        yPosition
+      );
+      pdf.text(
+        `Payment Status: ${order.order_status || "Pending"}`,
+        pageWidth - 20,
+        yPosition,
+        { align: "right" }
+      );
 
       yPosition += 15;
 
@@ -239,6 +271,69 @@ const ManageOrders = () => {
       pdf.line(15, yPosition, pageWidth - 15, yPosition);
 
       yPosition += 8;
+
+      // Subtotal calculation (total - fees)
+      const orderSubtotal =
+        order.total_amount -
+        (order.shipping_fee || 0) -
+        (order.platform_fee || 0);
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Subtotal:", pageWidth / 2 + 10, yPosition);
+      pdf.text(
+        `₱${(orderSubtotal / 100).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        pageWidth - 20,
+        yPosition,
+        { align: "right" }
+      );
+
+      yPosition += 6;
+      pdf.text("Shipping Fee:", pageWidth / 2 + 10, yPosition);
+      pdf.text(
+        `₱${((order.shipping_fee || 0) / 100).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        pageWidth - 20,
+        yPosition,
+        { align: "right" }
+      );
+
+      yPosition += 6;
+      pdf.text("Platform Fee:", pageWidth / 2 + 10, yPosition);
+      pdf.text(
+        `₱${((order.platform_fee || 0) / 100).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        pageWidth - 20,
+        yPosition,
+        { align: "right" }
+      );
+
+      // Points voucher if applicable
+      if (order.points_used && order.points_used > 0) {
+        yPosition += 6;
+        pdf.setTextColor(184, 134, 11); // Gold color for points
+        pdf.text("Points Voucher:", pageWidth / 2 + 10, yPosition);
+        pdf.text(
+          `${order.points_used} points used`,
+          pageWidth - 20,
+          yPosition,
+          { align: "right" }
+        );
+        pdf.setTextColor(0, 0, 0); // Reset to black
+      }
+
+      yPosition += 8;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(pageWidth / 2 + 10, yPosition, pageWidth - 20, yPosition);
+
+      yPosition += 8;
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "bold");
       pdf.text("TOTAL AMOUNT:", pageWidth / 2 + 10, yPosition);
@@ -295,6 +390,13 @@ const ManageOrders = () => {
     setStatusChangeModal({ order, newStatus });
   };
 
+  const handlePaymentStatusChangeRequest = (
+    order: Order,
+    newPaymentStatus: string
+  ) => {
+    setPaymentStatusModal({ order, newPaymentStatus });
+  };
+
   // ✅ Confirm status change
   const handleConfirmStatusChange = async () => {
     if (!statusChangeModal) return;
@@ -311,6 +413,26 @@ const ManageOrders = () => {
       setStatusChangeModal(null);
     } catch (error) {
       toast.error("Failed to update order status");
+      console.error(error);
+    }
+  };
+
+  // ✅ Confirm payment status change
+  const handleConfirmPaymentStatusChange = async () => {
+    if (!paymentStatusModal) return;
+
+    const { order, newPaymentStatus } = paymentStatusModal;
+    try {
+      await updatePaymentStatus(order.order_id, newPaymentStatus);
+      toast.success(
+        `Order ${
+          order.order_ref || order.order_id
+        } payment status updated to "${newPaymentStatus}"`
+      );
+      await fetchAllOrders(); // Refresh orders
+      setPaymentStatusModal(null);
+    } catch (error) {
+      toast.error("Failed to update payment status");
       console.error(error);
     }
   };
@@ -333,7 +455,7 @@ const ManageOrders = () => {
         return "bg-blue-50 text-blue-700 border-blue-200";
       case "To Receive":
         return "bg-yellow-50 text-yellow-700 border-yellow-200";
-      case "Received":
+      case "Delivered":
         return "bg-green-50 text-green-700 border-green-200";
       case "Cancelled":
         return "bg-red-50 text-red-700 border-red-200";
@@ -343,6 +465,17 @@ const ManageOrders = () => {
         return "bg-purple-50 text-purple-700 border-purple-200";
       case "Refunded":
         return "bg-gray-50 text-gray-700 border-gray-200";
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200";
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "paid":
+        return "bg-green-50 text-green-700 border-green-200";
+      case "pending":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
       default:
         return "bg-gray-50 text-gray-700 border-gray-200";
     }
@@ -430,7 +563,10 @@ const ManageOrders = () => {
                         Total
                       </th>
                       <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Status
+                        Payment
+                      </th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Shipping Status
                       </th>
                       <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         <button
@@ -487,9 +623,41 @@ const ManageOrders = () => {
                               {order.users?.user_email || ""}
                             </div>
                           </td>
-                          <td className="px-4 py-2.5 font-semibold text-gray-900 text-sm">
-                            ₱
-                            {(order.total_amount / 100).toLocaleString("en-US")}
+                          <td className="px-4 py-2.5">
+                            <div className="font-semibold text-gray-900 text-sm">
+                              ₱
+                              {(order.total_amount / 100).toLocaleString(
+                                "en-US"
+                              )}
+                            </div>
+                            {order.points_used && order.points_used > 0 && (
+                              <div className="text-xs text-yellow-700 font-medium mt-1">
+                                🎁 {order.points_used} pts used
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="text-xs text-gray-600 mb-1">
+                              {order.payment_method || "COD"}
+                            </div>
+                            <select
+                              value={order.order_status || "pending"}
+                              onChange={(e) =>
+                                handlePaymentStatusChangeRequest(
+                                  order,
+                                  e.target.value
+                                )
+                              }
+                              className={`px-2.5 py-1 text-xs border rounded-md font-medium focus:ring-2 focus:ring-indigo-300 focus:outline-none ${getPaymentStatusColor(
+                                order.order_status || "pending"
+                              )}`}
+                              disabled={
+                                order.payment_method?.toLowerCase() !== "cod"
+                              }
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="paid">Paid</option>
+                            </select>
                           </td>
                           <td className="px-4 py-2.5">
                             <select
@@ -536,7 +704,7 @@ const ManageOrders = () => {
                         {/* Expanded Order Items */}
                         {expandedOrderId === order.order_id && (
                           <tr>
-                            <td colSpan={6} className="px-4 py-3 bg-gray-50">
+                            <td colSpan={7} className="px-4 py-3 bg-gray-50">
                               <div className="space-y-2">
                                 <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
                                   Order Items
@@ -727,6 +895,95 @@ const ManageOrders = () => {
                 </button>
                 <button
                   onClick={handleConfirmStatusChange}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-green-700 to-green-900 text-white rounded-lg hover:from-green-800 hover:to-green-950 transition-colors font-medium"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Status Change Confirmation Modal */}
+        {paymentStatusModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md relative border border-gray-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <AlertCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Confirm Payment Status Change
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    Mark COD order as paid
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Order ID:</span>
+                    <span className="font-medium text-gray-900">
+                      {paymentStatusModal.order.order_ref ||
+                        paymentStatusModal.order.order_id.slice(0, 8)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Customer:</span>
+                    <span className="font-medium text-gray-900">
+                      {paymentStatusModal.order.users?.user_fname}{" "}
+                      {paymentStatusModal.order.users?.user_lname}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Payment Method:</span>
+                    <span className="font-medium text-gray-900">
+                      {paymentStatusModal.order.payment_method || "COD"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Current Status:</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                        paymentStatusModal.order.order_status || ""
+                      )}`}
+                    >
+                      {paymentStatusModal.order.order_status || "Pending"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                    <span className="text-gray-600">New Status:</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                        paymentStatusModal.newPaymentStatus
+                      )}`}
+                    >
+                      {paymentStatusModal.newPaymentStatus}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-6">
+                Are you sure you want to change the payment status to{" "}
+                <span className="font-semibold text-gray-900">
+                  {paymentStatusModal.newPaymentStatus}
+                </span>
+                ?
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPaymentStatusModal(null)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmPaymentStatusChange}
                   className="flex-1 px-4 py-2 bg-gradient-to-r from-green-700 to-green-900 text-white rounded-lg hover:from-green-800 hover:to-green-950 transition-colors font-medium"
                 >
                   Confirm

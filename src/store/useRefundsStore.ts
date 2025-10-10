@@ -102,6 +102,17 @@ export const useRefundsStore = create<RefundsStore>((set) => ({
 
       if (refundError || !refund) throw refundError;
 
+      // Get order details to check points_used
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .select("user_id, points_used")
+        .eq("order_id", refund.order_id)
+        .single();
+
+      if (orderError || !orderData) throw orderError;
+
+      const pointsUsed = orderData.points_used || 0;
+
       // Update refund status
       const { error: updateRefundError } = await supabase
         .from("order_refunds")
@@ -122,6 +133,38 @@ export const useRefundsStore = create<RefundsStore>((set) => ({
         .eq("order_id", refund.order_id);
 
       if (updateOrderError) throw updateOrderError;
+
+      // 🔄 Refund points if any were used
+      if (pointsUsed > 0) {
+        const { data: userData, error: userFetchError } = await supabase
+          .from("users")
+          .select("points")
+          .eq("user_id", orderData.user_id)
+          .single();
+
+        if (userFetchError) {
+          console.error(
+            "⚠️ Failed to fetch user points for refund:",
+            userFetchError
+          );
+        } else {
+          const currentPoints = userData?.points ?? 0;
+          const newPoints = currentPoints + pointsUsed;
+
+          const { error: pointsRefundError } = await supabase
+            .from("users")
+            .update({ points: newPoints })
+            .eq("user_id", orderData.user_id);
+
+          if (pointsRefundError) {
+            console.error("⚠️ Failed to refund points:", pointsRefundError);
+          } else {
+            console.log(
+              `🔄 Refunded ${pointsUsed} points to user ${orderData.user_id} (${currentPoints} → ${newPoints})`
+            );
+          }
+        }
+      }
 
       // Refresh refunds list
       await useRefundsStore.getState().fetchRefunds();

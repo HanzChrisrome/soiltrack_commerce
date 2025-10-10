@@ -12,42 +12,89 @@ const CheckoutSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { authUser, setAuthUser } = useAuthStore();
-  const clearCart = useShopStore((state) => state.clearCart);
+  const { clearCart, fetchCart } = useShopStore();
   const hasFinalized = useRef(false);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
-    const order_ref = queryParams.get("ref"); // only exists for online payment
-    const payment_method = queryParams.get("method") || "ONLINE"; // COD will pass method=COD
+    const order_ref = queryParams.get("ref");
 
     const finalizeOrder = async () => {
       if (!authUser?.user_id || hasFinalized.current) return;
       hasFinalized.current = true;
 
       try {
-        // 1️⃣ Get cart items directly from store (works for COD)
+        // IMPORTANT: Fetch cart first before trying to access it
+        await fetchCart(authUser.user_id);
+
+        // Now get cart items from store after fetching
         const cartItems = useShopStore.getState().cart;
-        if (!cartItems.length) return;
+        if (!cartItems.length) {
+          console.warn("Cart is empty, nothing to finalize");
+          return;
+        }
 
-        // 2️⃣ Determine final order reference
-        const finalOrderRef =
-          payment_method === "COD"
-            ? "cod_" + Math.random().toString(36).substring(2, 10)
-            : order_ref;
+        // For ONLINE payment: order_ref comes from URL (payment was successful)
+        // For COD: order_ref was already created when checkout was initiated
+        if (!order_ref) {
+          console.error("No order reference found");
+          return;
+        }
 
-        // 3️⃣ Prepare payload
+        // Retrieve checkout summary from localStorage
+        const checkoutSummaryStr = localStorage.getItem("checkout_summary");
+        if (!checkoutSummaryStr) {
+          console.error("No checkout summary found in localStorage");
+          console.warn(
+            "Attempting to create order without checkout summary (legacy flow)"
+          );
+          // Fallback: If no summary, backend will compute from cart items
+        }
+
+        const checkoutSummary = checkoutSummaryStr
+          ? JSON.parse(checkoutSummaryStr)
+          : {};
+
+        console.log("📦 Checkout Summary:", checkoutSummary);
+
+        // Create the order in the database (this is when it actually gets saved)
         const payload = {
           user_id: authUser.user_id,
-          order_ref: finalOrderRef,
-          checkout_url: payment_method === "COD" ? null : window.location.href,
-          cartItems,
-          payment_method,
+          order_ref: order_ref,
+          checkout_url: window.location.href,
+          payment_method: checkoutSummary.paymentMethod || "COD", // Use stored payment method
+          // Always include checkout summary data if available
+          total:
+            checkoutSummary.total !== undefined
+              ? checkoutSummary.total
+              : undefined,
+          subtotal:
+            checkoutSummary.subtotal !== undefined
+              ? checkoutSummary.subtotal
+              : undefined,
+          shippingFee:
+            checkoutSummary.shippingFee !== undefined
+              ? checkoutSummary.shippingFee
+              : undefined,
+          platformFee:
+            checkoutSummary.platformFee !== undefined
+              ? checkoutSummary.platformFee
+              : undefined,
+          platformFeeRate:
+            checkoutSummary.platformFeeRate !== undefined
+              ? checkoutSummary.platformFeeRate
+              : undefined,
+          redeemedItems: checkoutSummary.redeemedItems || [], // Pass which items were redeemed
         };
 
-        // 4️⃣ Finalize order (backend handles creating order + order_items)
+        console.log("📤 Sending payload to backend:", payload);
+
         await axios.post("http://localhost:5000/api/orders/finalize", payload);
 
-        // 5️⃣ Deduct points for redeemed items
+        // Clean up localStorage after successful order creation
+        localStorage.removeItem("checkout_summary");
+
+        // Deduct points for redeemed items (if applicable)
         const redeemedPoints = cartItems
           .filter((i) => i.redeemedWithPoints)
           .reduce((sum, i) => sum + (i.pointsCost ?? 0), 0);
@@ -64,8 +111,8 @@ const CheckoutSuccess = () => {
           });
         }
 
-        // 6️⃣ Clear cart
-        clearCart();
+        // Clear cart from database and local state
+        await clearCart(authUser.user_id);
       } catch (err: any) {
         console.error(
           "Failed to finalize order or deduct points:",
@@ -75,7 +122,7 @@ const CheckoutSuccess = () => {
     };
 
     finalizeOrder();
-  }, [authUser, location.search, clearCart, setAuthUser]);
+  }, [authUser, location.search, clearCart, fetchCart, setAuthUser]);
 
   return (
     <>
