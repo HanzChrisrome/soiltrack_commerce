@@ -16,7 +16,7 @@ const CheckoutCancel = () => {
           Your payment was not completed. You can try again or review your cart.
         </p>
         <button
-          onClick={() => navigate("/shop/cart")}
+          onClick={() => navigate("/cart")}
           className="bg-red-600 text-white px-6 py-2 rounded-lg shadow hover:bg-red-700"
         >
           Back to Cart

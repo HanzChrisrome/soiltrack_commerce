@@ -186,3 +186,52 @@ export const finalizeOrder = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Failed to finalize order" });
   }
 };
+// src/controllers/orderController.ts
+
+export const markOrderAsReceived = async (req: Request, res: Response) => {
+  try {
+    const { order_id, user_id } = req.body;
+
+    if (!order_id || !user_id) {
+      return res.status(400).json({ error: "Missing order_id or user_id" });
+    }
+
+    // Only allow changing "To Receive" → "Delivered"
+    const { data: orderData, error: fetchError } = await supabase
+      .from("orders")
+      .select("shipping_status")
+      .eq("order_id", order_id)
+      .eq("user_id", user_id)
+      .single();
+
+    if (fetchError || !orderData) {
+      console.error("❌ Failed to fetch order:", fetchError);
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (orderData.shipping_status !== "To Receive") {
+      return res
+        .status(400)
+        .json({ error: "Order is not in 'To Receive' status" });
+    }
+
+    // Update order status
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ shipping_status: "Delivered" })
+      .eq("order_id", order_id)
+      .eq("user_id", user_id);
+
+    if (updateError) {
+      console.error("❌ Failed to update order status:", updateError);
+      return res
+        .status(500)
+        .json({ error: "Failed to mark order as received" });
+    }
+
+    return res.json({ message: "✅ Order marked as received" });
+  } catch (err: any) {
+    console.error("❌ markOrderAsReceived error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

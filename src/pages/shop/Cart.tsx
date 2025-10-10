@@ -45,7 +45,14 @@ const Cart = () => {
   }, 0);
 
   const shippingFee = cart.length > 0 ? 100 : 0;
-  const platformFee = Math.round(subtotal * 0.1);
+  // Dynamic platform fee
+  let platformFeeRate = 0.05; // default medium
+  if (subtotal < 2000) {
+    platformFeeRate = 0.07; // small order
+  } else if (subtotal >= 10000) {
+    platformFeeRate = 0.03; // large/bulk order
+  }
+  const platformFee = Math.round(subtotal * platformFeeRate);
   const total = subtotal + shippingFee + platformFee;
 
   const handleProceedToCheckout = async () => {
@@ -58,7 +65,6 @@ const Cart = () => {
       return;
     }
 
-    // Include shipping & platform fee as separate items for backend
     const itemsPayload = [
       ...cart.map((ci) => ({
         product_id: ci.product_id,
@@ -78,7 +84,7 @@ const Cart = () => {
       },
       {
         product_id: "PLATFORM_FEE",
-        product_name: "Platform Fee (10%)",
+        product_name: `Platform Fee (${Math.round(platformFeeRate * 100)}%)`,
         product_price: platformFee,
         quantity: 1,
       },
@@ -145,14 +151,30 @@ const Cart = () => {
                         <p className="text-sm text-gray-500">
                           {item.product_category ?? "Uncategorized"}
                         </p>
-                        <p className="text-sm text-green-900 font-medium mt-1">
-                          ₱
-                          {(item.redeemedWithPoints
-                            ? 0
-                            : item.product_price ?? 0
-                          ).toLocaleString("en-US")}
+
+                        {/* Price display */}
+                        <p className="text-sm font-medium mt-1 flex items-center space-x-2">
+                          {item.redeemedWithPoints ? (
+                            <>
+                              <span className="line-through text-gray-400">
+                                ₱
+                                {(item.product_price ?? 0).toLocaleString(
+                                  "en-US"
+                                )}
+                              </span>
+                              <span className="text-green-900">₱0</span>
+                            </>
+                          ) : (
+                            <span className="text-green-900">
+                              ₱
+                              {(item.product_price ?? 0).toLocaleString(
+                                "en-US"
+                              )}
+                            </span>
+                          )}
                         </p>
 
+                        {/* Quantity controls */}
                         <div className="flex items-center mt-3 space-x-1">
                           <button
                             className="px-3 py-2 border border-gray-300 bg-gray-100 rounded-md hover:bg-gray-200"
@@ -184,14 +206,29 @@ const Cart = () => {
 
                       <div className="flex flex-col items-end">
                         <div className="flex items-center space-x-2">
-                          <p className="text-xl font-bold text-green-900">
-                            ₱
-                            {(
-                              (item.redeemedWithPoints
-                                ? 0
-                                : item.product_price ?? 0) * item.quantity
-                            ).toLocaleString("en-US")}
+                          {/* Item total */}
+                          <p className="text-sm font-medium mt-1 flex items-center space-x-2">
+                            {item.redeemedWithPoints ? (
+                              <>
+                                <span className="line-through text-gray-400">
+                                  ₱
+                                  {(item.product_price ?? 0).toLocaleString(
+                                    "en-US"
+                                  )}
+                                </span>
+                                <span className="text-green-900">₱0</span>
+                              </>
+                            ) : (
+                              <span className="text-green-900">
+                                ₱
+                                {(item.product_price ?? 0).toLocaleString(
+                                  "en-US"
+                                )}
+                              </span>
+                            )}
                           </p>
+
+                          {/* Remove button */}
                           <button
                             className="w-8 h-8 flex items-center justify-center rounded-full border border-red-400 bg-red-100 text-red-600 hover:bg-red-200"
                             onClick={() =>
@@ -220,8 +257,12 @@ const Cart = () => {
                             }
                           >
                             Redeem with Points (
-                            {getRedeemablePointCost(item.product_name ?? "")}{" "}
-                            pts)
+                            {(
+                              (getRedeemablePointCost(
+                                item.product_name ?? ""
+                              ) ?? 0) * item.quantity
+                            ).toLocaleString()}{" "}
+                            pts )
                           </button>
                         )}
                       {item.redeemedWithPoints && (
@@ -259,7 +300,9 @@ const Cart = () => {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Platform Fee (10%)</span>
+                        <span>
+                          Platform Fee ({Math.round(platformFeeRate * 100)}%)
+                        </span>
                         <span className="text-green-900">
                           ₱{platformFee.toLocaleString("en-US")}
                         </span>
