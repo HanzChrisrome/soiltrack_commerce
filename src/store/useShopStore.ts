@@ -4,6 +4,10 @@ import type { Product } from "../models/product";
 import type { CartItem } from "../models/cart";
 import { productService } from "../services/productService";
 import { cartService } from "../services/cartService";
+import {
+  getRedeemablePointCost,
+  isRedeemableProduct,
+} from "../models/redeemableProducts";
 
 interface ShopState {
   products: Product[];
@@ -22,6 +26,8 @@ interface ShopState {
   ) => Promise<void>;
   updateItemQuantity: (cart_item_id: string, quantity: number) => Promise<void>;
   removeItemFromCart: (cart_item_id: string) => Promise<void>;
+  redeemItemWithPoints: (cart_item_id: string, userPoints: number) => void;
+  cancelRedeemItem: (cart_item_id: string) => void;
   refreshProducts: () => Promise<void>;
   refreshCart: (user_id: string) => Promise<void>;
   clearCart: () => void;
@@ -35,6 +41,7 @@ export const useShopStore = create<ShopState>((set, get) => ({
   lastFetchedProducts: null,
   lastFetchedCart: null,
 
+  // Fetch products with caching
   fetchProducts: async () => {
     const { products, lastFetchedProducts } = get();
     const isStale =
@@ -52,6 +59,7 @@ export const useShopStore = create<ShopState>((set, get) => ({
     }
   },
 
+  // Fetch cart
   fetchCart: async (user_id: string) => {
     if (!user_id) return;
     set({ cartLoading: true });
@@ -75,6 +83,7 @@ export const useShopStore = create<ShopState>((set, get) => ({
     }
   },
 
+  // Add item to cart
   addItemToCart: async (user_id, product_id, quantity) => {
     try {
       const newItem = await cartService.addToCart(
@@ -102,6 +111,7 @@ export const useShopStore = create<ShopState>((set, get) => ({
     }
   },
 
+  // Update item quantity
   updateItemQuantity: async (cart_item_id, quantity) => {
     try {
       await cartService.updateQuantity(cart_item_id, quantity);
@@ -117,6 +127,7 @@ export const useShopStore = create<ShopState>((set, get) => ({
     }
   },
 
+  // Remove item from cart
   removeItemFromCart: async (cart_item_id) => {
     try {
       await cartService.removeItem(cart_item_id);
@@ -130,7 +141,49 @@ export const useShopStore = create<ShopState>((set, get) => ({
     }
   },
 
-  // ✅ force refresh products
+  // Redeem item with points (UI-only price deduction)
+  redeemItemWithPoints: (cart_item_id: string, userPoints: number) => {
+    set((state) => ({
+      cart: state.cart.map((item) => {
+        if (
+          item.cart_item_id === cart_item_id &&
+          isRedeemableProduct(item.product_name ?? "")
+        ) {
+          const pointsCost =
+            getRedeemablePointCost(item.product_name ?? "") ?? 0;
+          if (userPoints < pointsCost) return item; // disable if not enough points
+          return {
+            ...item,
+            redeemedWithPoints: true,
+            product_price_original: item.product_price ?? 0,
+            product_price: 0,
+            pointsCost,
+          };
+        }
+        return item;
+      }),
+    }));
+  },
+
+  // Cancel redeemed item
+  cancelRedeemItem: (cart_item_id) => {
+    set((state) => ({
+      cart: state.cart.map((item) => {
+        if (item.cart_item_id === cart_item_id && item.redeemedWithPoints) {
+          return {
+            ...item,
+            redeemedWithPoints: false,
+            product_price: item.product_price_original ?? item.product_price,
+            product_price_original: undefined,
+            pointsCost: undefined,
+          };
+        }
+        return item;
+      }),
+    }));
+  },
+
+  // Force refresh products
   refreshProducts: async () => {
     set({ productLoading: true });
     try {
@@ -143,7 +196,7 @@ export const useShopStore = create<ShopState>((set, get) => ({
     }
   },
 
-  // ✅ force refresh cart
+  // Force refresh cart
   refreshCart: async (user_id) => {
     if (!user_id) return;
     set({ cartLoading: true });
@@ -157,6 +210,7 @@ export const useShopStore = create<ShopState>((set, get) => ({
     }
   },
 
+  // Clear cart
   clearCart: () => {
     set({ cart: [], lastFetchedCart: Date.now() });
   },

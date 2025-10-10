@@ -92,9 +92,15 @@ const ProductDetails = () => {
 
             {/* Product Info */}
             <div>
-              <h1 className="text-3xl font-bold mb-2">
-                {product.product_name}
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold">{product.product_name}</h1>
+                {product.is_point_product && (
+                  <span className="bg-yellow-100 text-yellow-800 font-bold px-3 py-1 rounded-full text-sm">
+                    Redeemable with Points
+                  </span>
+                )}
+              </div>
+
               <div className="flex items-center text-sm text-gray-600 mb-4">
                 <span className="font-semibold">Category</span>
                 <span className="mx-2">:</span>
@@ -147,9 +153,6 @@ const ProductDetails = () => {
                 >
                   Add to Cart
                 </button>
-                <button className="bg-green-700 text-white font-semibold px-6 py-3 rounded-lg hover:bg-green-800">
-                  Buy Now
-                </button>
               </div>
             </div>
           </div>
@@ -166,9 +169,6 @@ const ProductDetails = () => {
 
               <div className="font-semibold">Brand:</div>
               <div>Antechors Planters</div>
-
-              <div className="font-semibold">Ships from:</div>
-              <div>{product.user_province || "Philippines"}</div>
             </div>
 
             <h2 className="text-xl font-bold mt-10 mb-4">

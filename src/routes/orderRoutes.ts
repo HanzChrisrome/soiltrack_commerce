@@ -1,14 +1,27 @@
+// src/routes/orderRoutes.ts
 import express from "express";
-import { finalizeOrder } from "../controllers/orderController";
+import {
+  finalizeOrder,
+  markOrderAsReceived,
+} from "../controllers/orderController";
 import { requestRefund } from "../controllers/refundController";
 
 const router = express.Router();
 
-// Existing routes
+// Finalize order (checkout)
 router.post("/finalize", express.json(), finalizeOrder);
-router.post("/refund", requestRefund);
 
-// ✅ Add this line — alias for cancellation requests
-router.post("/cancel", requestRefund);
+// Refund → sets shipping_status = "For Refund"
+router.post("/refund", express.json(), (req, res) =>
+  requestRefund({ ...req, body: { ...req.body, type: "refund" } } as any, res)
+);
+
+// Cancel → sets shipping_status = "For Cancellation"
+router.post("/cancel", express.json(), (req, res) =>
+  requestRefund({ ...req, body: { ...req.body, type: "cancel" } } as any, res)
+);
+
+// Mark as received
+router.post("/mark-received", express.json(), markOrderAsReceived);
 
 export default router;
