@@ -1,3 +1,4 @@
+//models/user.ts
 export interface IUser {
   user_id: string;
   user_fname?: string | null;
@@ -27,7 +28,31 @@ export interface IProfilePageData {
   orders: IOrderSummary[];
 }
 
+export interface IShippingAddress {
+  address_id: string;
+  user_id: string;
+  street: string;
+  is_default?: boolean | null;
+  created_at?: string;
+  updated_at?: string;
+  region_code?: string | null;
+  region_name?: string | null;
+  province_code?: string | null;
+  province_name?: string | null;
+  city_code?: string | null;
+  city_name?: string | null;
+  barangay_code?: string | null;
+  barangay_name?: string | null;
+}
+
 // helpers
+
+export interface IProfilePageData {
+  profile: IUser;
+  orders: IOrderSummary[];
+  addresses?: IShippingAddress[];
+}
+
 export const getFullName = (user: IUser) =>
   `${user.user_fname ?? ""} ${user.user_lname ?? ""}`.trim();
 
